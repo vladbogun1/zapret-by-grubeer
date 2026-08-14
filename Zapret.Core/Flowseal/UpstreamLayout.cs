@@ -36,6 +36,15 @@ public static class UpstreamLayout
     public const string ActiveGameFakeName = "ACTIVE_GAME_UDP.bin";
     public const string ActiveFakePrefix = "ACTIVE_";
 
+    /// <summary>
+    /// The <c>.service</c> directory exists in upstream's git repository but is **not** shipped inside
+    /// release archives — verified against the real 1.10.1 zip. That is exactly why upstream's own
+    /// <c>service.bat</c> downloads these payloads from the repository at runtime, and why the manager
+    /// does the same instead of expecting them on disk. See flowseal-compatibility.md §5.3.
+    /// </summary>
+    public static string PayloadUrl(string repository, string fileName) =>
+        $"https://raw.githubusercontent.com/{repository}/refs/heads/main/{ServiceDirectoryName}/{fileName}";
+
     public static string Bin(string root) => Path.Combine(root, BinDirectoryName);
     public static string Lists(string root) => Path.Combine(root, ListsDirectoryName);
     public static string Utils(string root) => Path.Combine(root, UtilsDirectoryName);

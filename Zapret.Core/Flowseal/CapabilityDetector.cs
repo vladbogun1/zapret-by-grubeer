@@ -23,8 +23,11 @@ public static class CapabilityDetector
             SupportsUserDomainLists = Directory.Exists(lists),
             SupportsIpSetFilter = File.Exists(UpstreamLayout.IpSetAll(runtimeDirectory))
                                   || File.Exists(UpstreamLayout.IpSetAllBackup(runtimeDirectory)),
-            SupportsIpSetUpdate = File.Exists(UpstreamLayout.IpSetPayload(runtimeDirectory)),
-            SupportsHostsUpdater = File.Exists(UpstreamLayout.HostsPayload(runtimeDirectory)),
+            // Release archives omit the .service directory, so these two are manager-provided features:
+            // the payload is fetched from upstream's repository, exactly as upstream's service.bat does.
+            // A local copy is used when present, which is the case for a git checkout.
+            SupportsIpSetUpdate = Directory.Exists(lists),
+            SupportsHostsUpdater = true,
             SupportsFakeReplacement = HasReplaceableFakes(bin),
         };
     }

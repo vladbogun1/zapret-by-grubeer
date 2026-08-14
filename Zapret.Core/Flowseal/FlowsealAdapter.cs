@@ -237,8 +237,10 @@ public class FlowsealAdapter(ILogger<FlowsealAdapter>? logger = null) : IFlowsea
         Add("test utility", capabilities.SupportsStrategyTests, $"{UpstreamLayout.UtilsDirectoryName}\\{UpstreamLayout.TestScriptName} missing");
         Add("game filter", capabilities.SupportsGameFilter, $"{UpstreamLayout.UtilsDirectoryName} directory missing");
         Add("IPSet filter", capabilities.SupportsIpSetFilter, $"{UpstreamLayout.IpSetAllName} missing");
-        Add("IPSet payload", capabilities.SupportsIpSetUpdate, $"{UpstreamLayout.ServiceDirectoryName}\\{UpstreamLayout.IpSetPayloadName} missing");
-        Add("hosts payload", capabilities.SupportsHostsUpdater, $"{UpstreamLayout.ServiceDirectoryName}\\{UpstreamLayout.HostsPayloadName} missing");
+        Add("IPSet update", capabilities.SupportsIpSetUpdate, $"{UpstreamLayout.ListsDirectoryName} directory missing");
+        // Not a limitation of the build: release archives never ship .service, so the hosts payload is
+        // fetched from upstream's repository at use time.
+        Add("hosts entries", capabilities.SupportsHostsUpdater, "unavailable");
         Add("fake replacement", capabilities.SupportsFakeReplacement, "no replaceable fake pairs found in bin");
     }
 

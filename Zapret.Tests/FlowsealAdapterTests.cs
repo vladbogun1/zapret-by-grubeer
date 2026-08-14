@@ -71,6 +71,27 @@ public sealed class FlowsealAdapterTests
         ], ids);
     }
 
+    /// <summary>
+    /// A release archive never contains <c>.service</c> — verified against the real 1.10.1 zip. That must
+    /// be fully compatible, not "compatible with limitations": the payloads are fetched from upstream's
+    /// repository, and the version falls back to service.bat's constant.
+    /// </summary>
+    [Fact]
+    public void A_build_installed_from_a_release_archive_has_no_service_directory_and_is_still_compatible()
+    {
+        using var fixture = RuntimeFixture.CreateComplete();
+        Directory.Delete(UpstreamLayout.ServiceDirectory(fixture.Root), recursive: true);
+
+        var info = Adapter.Inspect(fixture.Root);
+
+        Assert.Equal(CompatibilityOutcome.Compatible, info.Report.Outcome);
+        Assert.Equal("1.10.1", info.Version.Raw);
+        Assert.Equal(EngineVersionSource.ServiceBatConstant, info.Version.Source);
+        Assert.Equal(21, info.SupportedStrategyCount);
+        Assert.True(info.Capabilities.SupportsHostsUpdater);
+        Assert.True(info.Capabilities.SupportsIpSetUpdate);
+    }
+
     [Fact]
     public void A_build_without_the_engine_is_incompatible_and_says_why()
     {

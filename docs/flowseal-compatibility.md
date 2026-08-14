@@ -59,12 +59,27 @@ dynamic discovery. Only a genuine architectural break should require a manager r
         targets.txt                   test targets
         check_updates.enabled         flag file, presence = enabled
         game_filter.enabled           flag file, content = all|tcp|udp
-    .service\
+    .service\                         GIT-ONLY — see the note below
         version.txt                   engine version string
         hosts                         hosts payload for the hosts updater
         ipset-service.txt             full IPSet payload
     LICENSE.txt, README.md
 ```
+
+**The `.service` directory ships only in the git repository, not in release archives.** Verified
+by installing the real `zapret-discord-youtube-1.10.1.zip`: its root contains `bin`, `lists`,
+`utils`, `service.bat` and the strategy files — and nothing else. This is not an oversight
+on upstream's part: `service.bat` downloads both payloads from `raw.githubusercontent.com` at
+runtime, which is only necessary because they are absent from the archive.
+
+Two consequences, both load-bearing:
+
+* `.service\version.txt` is normally **unavailable**, so for a zip install the engine version
+  comes from `service.bat`'s `LOCAL_VERSION` constant. Both sources stay implemented because a
+  git checkout has the file and a future archive might include it.
+* The hosts and IPSet payloads are fetched from the configured upstream repository, exactly as
+  upstream does, with a local copy preferred when one exists (§5.3). Their absence from the
+  archive is therefore *not* a capability limitation, and must not be reported as one.
 
 ### 2.1 Stability classification
 
@@ -242,8 +257,11 @@ Switching mirrors upstream's rename dance with `ipset-all.txt.backup`, and refus
 
 ### 5.3 IPSet and hosts updates
 
-* IPSet update fetches `.service/ipset-service.txt` from upstream `main` into
-  `lists\ipset-all.txt`.
+* IPSet update takes `.service/ipset-service.txt` from the installed build when present, and
+  otherwise from `https://raw.githubusercontent.com/<repository>/refs/heads/main/.service/…`,
+  writing it to `lists\ipset-all.txt` and preserving upstream's `.backup` convention so the
+  three-state switch keeps working. The repository comes from the manager's own settings; no
+  URL ever originates from an IPC client.
 * Upstream's hosts flow only *compares* first/last line and then asks the user to copy the
   file by hand (Notepad + Explorer). The manager improves on this without changing intent:
   it writes a **managed section** delimited by the deliberately ASCII markers

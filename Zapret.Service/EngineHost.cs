@@ -25,6 +25,7 @@ public sealed class EngineHost(
     HostsManager hosts,
     TcpTimestamps timestamps,
     ITargetProbe targetProbe,
+    HttpClient http,
     ILoggerFactory loggerFactory,
     ILogger<EngineHost> logger)
 {
@@ -413,19 +414,69 @@ public sealed class EngineHost(
             return new OperationResultPayload(false, "The installed engine version does not ship an IPSet payload.");
         }
 
-        // The payload the installed build shipped with; no client-supplied URL is ever used.
+        var (payload, error) = await ReadPayloadAsync(runtime.Directory, UpstreamLayout.IpSetPayloadName, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (payload is null) return new OperationResultPayload(false, error);
+
         try
         {
-            var payload = await File.ReadAllTextAsync(UpstreamLayout.IpSetPayload(runtime.Directory), cancellationToken).ConfigureAwait(false);
-            await File.WriteAllTextAsync(UpstreamLayout.IpSetAll(runtime.Directory), payload, cancellationToken).ConfigureAwait(false);
+            var listFile = UpstreamLayout.IpSetAll(runtime.Directory);
+            var backupFile = UpstreamLayout.IpSetAllBackup(runtime.Directory);
+
+            // Keep upstream's backup convention intact, so switching back to "loaded" still works.
+            if (File.Exists(listFile) && runtime.IpSet == IpSetMode.Loaded) MoveOver(listFile, backupFile);
+
+            await File.WriteAllTextAsync(listFile, payload, cancellationToken).ConfigureAwait(false);
             InvalidateRuntime();
 
-            return new OperationResultPayload(true, "The IPSet list was updated from the installed engine build.");
+            var count = payload.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
+            return new OperationResultPayload(true, $"The IPSet list was updated: {count} entries.");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             logger.LogError(ex, "Could not update the IPSet list");
             return new OperationResultPayload(false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reads a <c>.service</c> payload: from the installed build when it is a git checkout, otherwise
+    /// from upstream's repository, because release archives do not contain that directory. The URL is
+    /// always built from the configured repository — never from anything a client sent.
+    /// </summary>
+    private async Task<(string? Payload, string? Error)> ReadPayloadAsync(
+        string runtimeDirectory,
+        string fileName,
+        CancellationToken cancellationToken)
+    {
+        var local = Path.Combine(UpstreamLayout.ServiceDirectory(runtimeDirectory), fileName);
+        if (File.Exists(local))
+        {
+            return (await File.ReadAllTextAsync(local, cancellationToken).ConfigureAwait(false), null);
+        }
+
+        var repository = settings.Read().EngineRepository;
+        var url = UpstreamLayout.PayloadUrl(repository, fileName);
+
+        try
+        {
+            using var response = await http.GetAsync(url, cancellationToken).ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Payload {File} returned {Status} from {Repository}", fileName, (int)response.StatusCode, repository);
+                return (null, $"{repository} no longer publishes {fileName} ({(int)response.StatusCode}).");
+            }
+
+            var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Fetched {File} from {Repository} ({Bytes} bytes)", fileName, repository, content.Length);
+            return (content, null);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            logger.LogWarning(ex, "Could not fetch {File} from {Repository}", fileName, repository);
+            return (null, "Could not reach GitHub to fetch the list.");
         }
     }
 
@@ -438,7 +489,10 @@ public sealed class EngineHost(
             return new OperationResultPayload(false, "The installed engine version does not ship a hosts payload.");
         }
 
-        var payload = await File.ReadAllTextAsync(UpstreamLayout.HostsPayload(runtime.Directory), cancellationToken).ConfigureAwait(false);
+        var (payload, error) = await ReadPayloadAsync(runtime.Directory, UpstreamLayout.HostsPayloadName, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (payload is null) return new OperationResultPayload(false, error);
 
         return hosts.Apply(payload, $"Flowseal Zapret {runtime.Version.Raw}")
             ? new OperationResultPayload(true, "The managed hosts entries were applied.")

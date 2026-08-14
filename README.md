@@ -53,11 +53,27 @@ The tests run entirely offline against the real upstream `.bat` files of engine 
 | Managed hosts section, TCP timestamp handling, target probe | done, hosts covered by tests |
 | Engine controllers (managed process and upstream service mode) | done, needs on-machine verification |
 | Privileged service and named-pipe IPC with per-operation authorization | done, needs on-machine verification |
-| UI shell: FluentWindow, navigation, theming, tray, single instance | done, window verified to launch |
-| UI pages: Home, Strategies, About | done |
-| UI pages: Updates, Settings, Services, Lists, Diagnostics | not started |
-| Manager self-update | not started |
-| Installer and uninstaller | not started |
+| UI shell: FluentWindow, navigation, theming, tray, single instance | done |
+| UI pages: Home, Strategies, Services, Lists, Diagnostics, Updates, Settings, About | done |
+| Manager self-update, safe plain-text release notes | done |
+| Installer, clean uninstall, application icon | done |
+
+### Verified on a real machine
+
+Installed from the compiled installer, then driven through the live service over its named pipe:
+
+| Check | Result |
+| --- | --- |
+| Installer, Apps list entry, service registration | installed to `C:\Program Files\Zapret by Grubeer`, service `ZapretByGrubeer` running, automatic |
+| Engine install transaction (download → inspect → validate → activate) | engine 1.10.1 in 1.6 s, **21 strategies discovered**, verdict Compatible |
+| Engine version detection | fell back to `service.bat`'s `LOCAL_VERSION`, because release archives ship no `.service` directory |
+| Applying a strategy | `ALT11` applied, `winws.exe` running, `WinDivert` kernel driver RUNNING, engine log captured |
+| Reachability with the engine running | Discord HTTP 200, YouTube HTTP 204 |
+| Stop | clean, no leftover engine process |
+| Autostart | the service brought the engine back up with the remembered strategy after a restart |
+| IPSet list update | fetched from upstream's repository, 32 126 entries |
+| Managed hosts section | applied, then removed leaving the file byte-identical apart from backups |
+| IPC authorization | unknown operations and protocol mismatches rejected; the deny-for-standard-user path is covered by design but was not exercised, since the test session was elevated |
 
 ## Attribution
 
