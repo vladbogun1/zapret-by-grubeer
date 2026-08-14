@@ -5,6 +5,7 @@ using Zapret.Core.Flowseal;
 using Zapret.Core.GitHub;
 using Zapret.Core.Ipc;
 using Zapret.Core.Model;
+using Zapret.Core.Services;
 using Zapret.Core.SystemIntegration;
 using Zapret.Core.Testing;
 
@@ -356,6 +357,129 @@ public sealed class EngineHost(
                 best is not null && r.StrategyId == best.StrategyId)).ToList(),
         };
     }
+
+    // ---- service catalog ----------------------------------------------------------------------
+
+    /// <summary>Everything the catalog knows plus the user's own services, with what is currently switched on.</summary>
+    public ServiceCatalogPayload GetServiceCatalog()
+    {
+        var current = settings.Read();
+        var all = AllServices(current);
+        var content = ReadUserList();
+
+        // Enabled state is read from the file, not from settings: the file is the truth, and a hand-edited
+        // block must not show as a service that is on when it no longer is.
+        var enabled = UserListComposer.DetectEnabled(content, all).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return new ServiceCatalogPayload
+        {
+            ManualEntryCount = UserListComposer.ManualLines(content).Count(),
+            Items = all.Select(s => new ServiceCatalogItem(
+                s.Id, s.CategoryKey, s.Domains, s.CheckUrl, s.IsCustom, enabled.Contains(s.Id))).ToList(),
+        };
+    }
+
+    public Task<OperationResultPayload> SetServiceEnabledAsync(string id, bool enabled, CancellationToken cancellationToken)
+    {
+        var current = settings.Read();
+        var all = AllServices(current);
+
+        if (all.All(s => !s.Id.Equals(id, StringComparison.OrdinalIgnoreCase)))
+        {
+            return Task.FromResult(new OperationResultPayload(false, $"Unknown service '{id}'."));
+        }
+
+        settings.Update(s =>
+        {
+            s.EnabledServices.RemoveAll(x => x.Equals(id, StringComparison.OrdinalIgnoreCase));
+            if (enabled) s.EnabledServices.Add(id);
+        });
+
+        return ApplyServiceSelectionAsync(cancellationToken);
+    }
+
+    public Task<OperationResultPayload> AddCustomServiceAsync(
+        string id,
+        IEnumerable<string> domains,
+        string? checkUrl,
+        CancellationToken cancellationToken)
+    {
+        var existing = settings.Read();
+
+        // Validation lives in Core so the UI and the service cannot disagree about what is acceptable.
+        if (!ServiceCatalog.TryCreateCustom(id, domains, checkUrl, out var service, out var error))
+        {
+            return Task.FromResult(new OperationResultPayload(false, error));
+        }
+
+        if (existing.CustomServices.Any(c => c.Id.Equals(service!.Id, StringComparison.OrdinalIgnoreCase)))
+        {
+            return Task.FromResult(new OperationResultPayload(false, "service.error.duplicate"));
+        }
+
+        settings.Update(s =>
+        {
+            s.CustomServices.Add(new CustomServiceSetting
+            {
+                Id = service!.Id,
+                Domains = service.Domains.ToList(),
+                CheckUrl = service.CheckUrl,
+            });
+
+            // A service the user just defined is switched on: defining it is the intent.
+            if (!s.EnabledServices.Contains(service.Id, StringComparer.OrdinalIgnoreCase))
+            {
+                s.EnabledServices.Add(service.Id);
+            }
+        });
+
+        return ApplyServiceSelectionAsync(cancellationToken);
+    }
+
+    public Task<OperationResultPayload> RemoveCustomServiceAsync(string id, CancellationToken cancellationToken)
+    {
+        settings.Update(s =>
+        {
+            s.CustomServices.RemoveAll(c => c.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+            s.EnabledServices.RemoveAll(x => x.Equals(id, StringComparison.OrdinalIgnoreCase));
+        });
+
+        return ApplyServiceSelectionAsync(cancellationToken);
+    }
+
+    private static IReadOnlyList<ServiceDefinition> AllServices(ManagerSettings settings) =>
+    [
+        .. ServiceCatalog.BuiltIn,
+        .. settings.CustomServices.Select(c => new ServiceDefinition(
+            c.Id, ServiceCategory.Custom, c.Domains, c.CheckUrl, IsCustom: true)),
+    ];
+
+    /// <summary>
+    /// Rewrites the manager-owned block of the user list from the current selection, preserving whatever the
+    /// user wrote there by hand, and restarts the engine because <c>winws</c> reads its lists at startup only.
+    /// </summary>
+    private async Task<OperationResultPayload> ApplyServiceSelectionAsync(CancellationToken cancellationToken)
+    {
+        var current = settings.Read();
+        var all = AllServices(current);
+
+        var enabled = all
+            .Where(s => current.EnabledServices.Contains(s.Id, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        var composed = UserListComposer.Compose(ReadUserList(), enabled);
+
+        var result = await SaveUserListAsync(UserListName, composed, cancellationToken).ConfigureAwait(false);
+        if (!result.Success) return result;
+
+        events.Add(ManagerEventLevel.Information, ManagerEvents.SettingChanged, UserListName);
+
+        return new OperationResultPayload(true, $"{enabled.Count} service(s) enabled.");
+    }
+
+    private const string UserListName = "list-general-user.txt";
+
+    private string? ReadUserList() => GetUserList(UserListName);
 
     public EventsPayload GetEvents(int count) => new()
     {

@@ -42,7 +42,10 @@ public static class UserListComposer
         if (domains.Count > 0)
         {
             builder.AppendLine(BeginMarker);
-            builder.AppendLine("# Managed by Запрет by Grubeer. Edits inside this block are overwritten.");
+
+            // ASCII on purpose, like the hosts markers: this file is read by the cygwin-built winws.exe, and
+            // there is nothing to gain from putting non-ASCII text into a comment it has to parse past.
+            builder.AppendLine("# Managed by ZapretByGrubeer. Edits inside this block are overwritten.");
             foreach (var domain in domains) builder.AppendLine(domain);
             builder.AppendLine(EndMarker);
         }
@@ -74,7 +77,7 @@ public static class UserListComposer
     }
 
     /// <summary>Lines the user owns: everything outside the managed block, minus upstream's placeholders.</summary>
-    internal static IEnumerable<string> ManualLines(string? content)
+    public static IEnumerable<string> ManualLines(string? content)
     {
         if (string.IsNullOrWhiteSpace(content)) yield break;
 

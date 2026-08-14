@@ -5,92 +5,110 @@
       Background="Transparent"
       FontFamily="{StaticResource AppFontText}">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="{StaticResource PagePadding}" MaxWidth="900" HorizontalAlignment="Left">
+    <Page.Resources>
+        <!-- One service: a toggle, the product name, and what it actually covers. -->
+        <DataTemplate x:Key="ServiceRow">
+            <Grid Margin="0,6,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-            <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,14"
-                       Text="{Binding [services.pageTitle], Source={x:Static loc:Loc.Instance}}" />
+                <CheckBox Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center"
+                          IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                          IsEnabled="{Binding CanToggle}"
+                          Command="{Binding ToggleCommand}"
+                          ToolTip="{Binding DomainsText}" />
 
-            <Border x:Name="ReadOnlyBanner" Style="{StaticResource Card}" Padding="14,10"
-                    Margin="{StaticResource GapBottom}" Visibility="Collapsed"
-                    Background="#221F6FE0" BorderBrush="{StaticResource BorderStrongBrush}">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center"
-                               Foreground="{StaticResource AccentCyan}" Text="&#xE72E;" />
-                    <TextBlock Margin="10,0,0,0" Style="{StaticResource TextBase}" TextWrapping="Wrap"
-                               Text="{Binding [common.readOnly], Source={x:Static loc:Loc.Instance}}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource TextBase}" FontWeight="SemiBold" Text="{Binding Id}" />
+                    <TextBlock Style="{StaticResource TextSecondaryStyle}" Text="{Binding DomainsText}"
+                               TextTrimming="CharacterEllipsis" MaxWidth="520" />
+                </StackPanel>
+
+                <Button Grid.Column="2" Style="{StaticResource LinkButton}" VerticalAlignment="Center"
+                        Command="{Binding RemoveCommand}"
+                        Visibility="{Binding IsCustom, Converter={StaticResource BoolToVisibility}}"
+                        Content="{Binding [services.remove], Source={x:Static loc:Loc.Instance}}" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- One category of services. -->
+        <DataTemplate x:Key="CategoryCard">
+            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="{Binding Title}" />
+                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding Items}"
+                                  ItemTemplate="{StaticResource ServiceRow}" />
                 </StackPanel>
             </Border>
+        </DataTemplate>
+    </Page.Resources>
 
-            <!-- run mode -->
-            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}"
-                               Text="{Binding [services.runMode], Source={x:Static loc:Loc.Instance}}" />
-                    <TextBlock Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
-                               Text="{Binding [services.runModeHint], Source={x:Static loc:Loc.Instance}}" />
+    <Grid Margin="{StaticResource PagePadding}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="420" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-                    <RadioButton x:Name="ManagedProcessRadio" GroupName="RunMode" Checked="OnRunModeChanged"
-                                 Content="{Binding [services.managedProcess], Source={x:Static loc:Loc.Instance}}" />
-                    <RadioButton x:Name="WindowsServiceRadio" GroupName="RunMode" Margin="0,8,0,0" Checked="OnRunModeChanged"
-                                 Content="{Binding [services.windowsService], Source={x:Static loc:Loc.Instance}}" />
+        <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource SectionTitle}"
+                   Text="{Binding [nav.services], Source={x:Static loc:Loc.Instance}}" />
 
-                    <CheckBox x:Name="AutostartBox" Margin="0,14,0,0" Click="OnAutostartChanged"
-                              Content="{Binding [services.autostart], Source={x:Static loc:Loc.Instance}}" />
-                </StackPanel>
-            </Border>
+        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,14,12" Style="{StaticResource TextSecondaryStyle}"
+                   TextWrapping="Wrap" Text="{Binding [services.catalogHint], Source={x:Static loc:Loc.Instance}}" />
 
-            <!-- game filter -->
-            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}"
-                               Text="{Binding [system.gameFilter], Source={x:Static loc:Loc.Instance}}" />
-                    <TextBlock Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
-                               Text="{Binding [services.gameFilterHint], Source={x:Static loc:Loc.Instance}}" />
-                    <ComboBox x:Name="GameFilterCombo" Width="300" HorizontalAlignment="Left" SelectionChanged="OnGameFilterChanged">
-                        <ComboBoxItem Content="{Binding [system.disabled], Source={x:Static loc:Loc.Instance}}" />
-                        <ComboBoxItem Content="TCP + UDP" />
-                        <ComboBoxItem Content="TCP" />
-                        <ComboBoxItem Content="UDP" />
-                    </ComboBox>
-                </StackPanel>
-            </Border>
+        <ScrollViewer Grid.Row="2" Grid.Column="0" Margin="0,0,14,0" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <ItemsControl x:Name="CategoryList" ItemTemplate="{StaticResource CategoryCard}" />
 
-            <!-- ipset -->
-            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}"
-                               Text="{Binding [system.ipsetFilter], Source={x:Static loc:Loc.Instance}}" />
-                    <TextBlock Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
-                               Text="{Binding [services.ipsetHint], Source={x:Static loc:Loc.Instance}}" />
-                    <ComboBox x:Name="IpSetCombo" Width="300" HorizontalAlignment="Left" SelectionChanged="OnIpSetChanged">
-                        <ComboBoxItem Content="{Binding [system.any], Source={x:Static loc:Loc.Instance}}" />
-                        <ComboBoxItem Content="{Binding [system.disabled], Source={x:Static loc:Loc.Instance}}" />
-                        <ComboBoxItem Content="{Binding [system.loaded], Source={x:Static loc:Loc.Instance}}" />
-                    </ComboBox>
-                    <Button x:Name="UpdateIpSetButton" Style="{StaticResource SecondaryButton}" Margin="0,12,0,0"
-                            HorizontalAlignment="Left" Click="OnUpdateIpSet"
-                            Content="{Binding [services.updateIpSet], Source={x:Static loc:Loc.Instance}}" />
-                </StackPanel>
-            </Border>
-
-            <!-- hosts -->
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}"
-                               Text="{Binding [diagnostics.hosts], Source={x:Static loc:Loc.Instance}}" />
-                    <TextBlock x:Name="HostsStateText" Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}"
-                               TextWrapping="Wrap" />
+                <Border x:Name="ManualNote" Style="{StaticResource Card}" Padding="14,10" Visibility="Collapsed">
                     <StackPanel Orientation="Horizontal">
-                        <Button x:Name="ApplyHostsButton" Style="{StaticResource SecondaryButton}" Click="OnApplyHosts"
-                                Content="{Binding [services.applyHosts], Source={x:Static loc:Loc.Instance}}" />
-                        <Button x:Name="RemoveHostsButton" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"
-                                Click="OnRemoveHosts"
-                                Content="{Binding [services.removeHosts], Source={x:Static loc:Loc.Instance}}" />
+                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center"
+                                   Foreground="{StaticResource AccentCyan}" Text="&#xE946;" />
+                        <TextBlock x:Name="ManualNoteText" Margin="10,0,0,0" Style="{StaticResource TextSecondaryStyle}"
+                                   TextWrapping="Wrap" MaxWidth="560" />
                     </StackPanel>
-                </StackPanel>
-            </Border>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
 
-        </StackPanel>
-    </ScrollViewer>
+        <!-- add a service -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="1" Style="{StaticResource Card}" Width="330"
+                VerticalAlignment="Top">
+            <StackPanel>
+                <TextBlock Style="{StaticResource CardTitle}"
+                           Text="{Binding [services.add], Source={x:Static loc:Loc.Instance}}" />
+                <TextBlock Margin="0,4,0,14" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                           Text="{Binding [services.addHint], Source={x:Static loc:Loc.Instance}}" />
+
+                <TextBlock Style="{StaticResource TextSecondaryStyle}"
+                           Text="{Binding [services.fieldName], Source={x:Static loc:Loc.Instance}}" />
+                <TextBox x:Name="NameBox" Margin="0,4,0,12" />
+
+                <TextBlock Style="{StaticResource TextSecondaryStyle}"
+                           Text="{Binding [services.fieldDomains], Source={x:Static loc:Loc.Instance}}" />
+                <TextBox x:Name="DomainsBox" Margin="0,4,0,12" Height="96" AcceptsReturn="True"
+                         TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" />
+
+                <TextBlock Style="{StaticResource TextSecondaryStyle}"
+                           Text="{Binding [services.fieldCheckUrl], Source={x:Static loc:Loc.Instance}}" />
+                <TextBox x:Name="CheckUrlBox" Margin="0,4,0,12" />
+
+                <TextBlock x:Name="ErrorText" Margin="0,0,0,10" Style="{StaticResource TextSecondaryStyle}"
+                           Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap" Visibility="Collapsed" />
+
+                <Button x:Name="AddButton" Style="{StaticResource PrimaryButton}" Click="OnAddCustom"
+                        Content="{Binding [services.add], Source={x:Static loc:Loc.Instance}}" />
+
+                <ProgressBar x:Name="Busy" IsIndeterminate="True" Height="4" Margin="0,12,0,0" Visibility="Collapsed" />
+            </StackPanel>
+        </Border>
+    </Grid>
 </Page>

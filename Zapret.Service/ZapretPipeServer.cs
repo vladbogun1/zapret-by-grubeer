@@ -187,6 +187,24 @@ public sealed class ZapretPipeServer(EngineHost host, ILogger<ZapretPipeServer> 
             case IpcOperations.GetTestResults:
                 return Ok(host.GetTestResults());
 
+            case IpcOperations.GetServiceCatalog:
+                return Ok(host.GetServiceCatalog());
+
+            case IpcOperations.SetServiceEnabled:
+            {
+                var payload = Require<ServiceTogglePayload>(request);
+                return Ok(await host.SetServiceEnabledAsync(payload.Id, payload.Enabled, cancellationToken).ConfigureAwait(false));
+            }
+
+            case IpcOperations.AddCustomService:
+            {
+                var payload = Require<CustomServicePayload>(request);
+                return Ok(await host.AddCustomServiceAsync(payload.Id, payload.Domains, payload.CheckUrl, cancellationToken).ConfigureAwait(false));
+            }
+
+            case IpcOperations.RemoveCustomService:
+                return Ok(await host.RemoveCustomServiceAsync(Require<IdPayload>(request).Id, cancellationToken).ConfigureAwait(false));
+
             case IpcOperations.RunFullTest:
                 return Ok(await host.RunFullTestAsync(cancellationToken).ConfigureAwait(false));
 

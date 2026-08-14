@@ -55,10 +55,28 @@ public sealed record ManagerSettings
     /// </summary>
     public Dictionary<string, string> NetworkStrategies { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Services the user switched on, by catalog id. Absent means the manager adds nothing of its own to the
+    /// user list — upstream's shipped lists already cover the common cases, so an empty selection is a valid
+    /// and quiet default rather than something to be filled in.
+    /// </summary>
+    public List<string> EnabledServices { get; set; } = new();
+
+    /// <summary>Services the user defined. Stored here rather than in a list file so they survive engine updates.</summary>
+    public List<CustomServiceSetting> CustomServices { get; set; } = new();
+
     public ReleaseFeedState ManagerFeed { get; set; } = new();
     public ReleaseFeedState EngineFeed { get; set; } = new();
 
     public TimeSpan UpdateCheckInterval { get; set; } = TimeSpan.FromHours(6);
+}
+
+/// <summary>A user-defined service, in the shape the settings file stores it.</summary>
+public sealed record CustomServiceSetting
+{
+    public string Id { get; set; } = string.Empty;
+    public List<string> Domains { get; set; } = new();
+    public string? CheckUrl { get; set; }
 }
 
 public interface ISettingsStore

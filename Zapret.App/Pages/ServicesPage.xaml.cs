@@ -1,157 +1,214 @@
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Controls;
-using Zapret.Core.Engine;
-using Zapret.Core.Model;
+using Zapret.App.Localization;
+using Zapret.App.ViewModels;
+using Zapret.Core.Ipc;
 
 namespace Zapret.App.Pages;
 
+/// <summary>
+/// The service catalog: what a user actually wants unblocked, without having to learn which domains belong to
+/// which product or edit a text file (SPEC.md §18, §34). Toggling a service rewrites only the manager-owned
+/// block of the user list, so anything added there by hand survives.
+/// </summary>
 public partial class ServicesPage : Page
 {
-    private readonly ManagerClient _client;
+    private static Loc L => Loc.Instance;
 
-    /// <summary>Set while controls are being filled in, so programmatic changes do not fire commands.</summary>
-    private bool _rendering;
+    private readonly ManagerClient _client;
+    private readonly ObservableCollection<ServiceCategoryViewModel> _categories = new();
+    private bool _loaded;
 
     public ServicesPage(ManagerClient client)
     {
         InitializeComponent();
 
         _client = client;
-        _client.Changed += () => Dispatcher.Invoke(Render);
+        CategoryList.ItemsSource = _categories;
+        DataContext = this;
+
+        Loc.Instance.LanguageChanged += () => _ = LoadAsync();
 
         IsVisibleChanged += async (_, e) =>
         {
-            if ((bool)e.NewValue) await _client.RefreshAsync();
-        };
+            if (!(bool)e.NewValue) return;
 
-        Render();
+            await _client.RefreshAsync();
+            if (!_loaded) await LoadAsync();
+        };
     }
 
-    private void Render()
+    private async Task LoadAsync()
     {
-        var status = _client.Status;
-        var canModify = _client.CanModify;
-
-        ReadOnlyBanner.Visibility = _client.ServiceAvailable && !canModify ? Visibility.Visible : Visibility.Collapsed;
-
-        _rendering = true;
+        Busy.Visibility = Visibility.Visible;
         try
         {
-            if (status is not null)
+            var catalog = await _client.GetServiceCatalogAsync();
+
+            _categories.Clear();
+            if (catalog is null) return;
+
+            // Grouped in the order the specification lists the categories, and an empty category is not shown.
+            foreach (var group in catalog.Items
+                         .GroupBy(i => i.CategoryKey)
+                         .OrderBy(g => CategoryOrder(g.Key)))
             {
-                ManagedProcessRadio.IsChecked = status.RunMode == EngineRunMode.ManagedProcess;
-                WindowsServiceRadio.IsChecked = status.RunMode == EngineRunMode.WindowsService;
-                AutostartBox.IsChecked = status.StartEngineWithWindows;
-
-                GameFilterCombo.SelectedIndex = status.GameFilter switch
-                {
-                    GameFilterMode.All => 1,
-                    GameFilterMode.TcpOnly => 2,
-                    GameFilterMode.UdpOnly => 3,
-                    _ => 0,
-                };
-
-                IpSetCombo.SelectedIndex = status.IpSet switch
-                {
-                    IpSetMode.None => 1,
-                    IpSetMode.Loaded => 2,
-                    _ => 0,
-                };
-
-                HostsStateText.Text = Localization.Loc.Instance[
-                    status.ManagedHostsApplied ? "services.hostsApplied" : "services.hostsNotApplied"];
+                _categories.Add(new ServiceCategoryViewModel(
+                    L[group.Key],
+                    group.Select(item => new ServiceToggleViewModel(item, _client.CanModify, ToggleAsync, RemoveAsync))));
             }
 
-            var capabilities = status?.Capabilities ?? UpstreamCapabilities.None;
+            // Manual entries are the user's own; say they are respected rather than leaving them a mystery.
+            if (catalog.ManualEntryCount > 0)
+            {
+                ManualNoteText.Text = L.Format("services.manualEntries", catalog.ManualEntryCount);
+                ManualNote.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ManualNote.Visibility = Visibility.Collapsed;
+            }
 
-            ManagedProcessRadio.IsEnabled = canModify;
-            WindowsServiceRadio.IsEnabled = canModify && capabilities.SupportsUpstreamServiceMode;
-            AutostartBox.IsEnabled = canModify;
-            GameFilterCombo.IsEnabled = canModify && capabilities.SupportsGameFilter;
-            IpSetCombo.IsEnabled = canModify && capabilities.SupportsIpSetFilter;
-            UpdateIpSetButton.IsEnabled = canModify && capabilities.SupportsIpSetUpdate;
-            ApplyHostsButton.IsEnabled = canModify && capabilities.SupportsHostsUpdater;
-            RemoveHostsButton.IsEnabled = canModify && status?.ManagedHostsApplied == true;
+            AddButton.IsEnabled = _client.CanModify;
+            _loaded = true;
         }
         finally
         {
-            _rendering = false;
+            Busy.Visibility = Visibility.Collapsed;
         }
     }
 
-    private async void OnRunModeChanged(object sender, RoutedEventArgs e)
+    private static int CategoryOrder(string key) => key switch
     {
-        if (_rendering) return;
+        "category.messaging" => 0,
+        "category.video" => 1,
+        "category.infrastructure" => 2,
+        "category.ai" => 3,
+        "category.social" => 4,
+        _ => 5,
+    };
 
-        var mode = WindowsServiceRadio.IsChecked == true ? EngineRunMode.WindowsService : EngineRunMode.ManagedProcess;
-        Report(await _client.SetRunModeAsync(mode), "Run mode");
-    }
-
-    private async void OnAutostartChanged(object sender, RoutedEventArgs e)
+    private async Task ToggleAsync(string id, bool enabled)
     {
-        if (_rendering) return;
-        Report(await _client.SetAutostartAsync(AutostartBox.IsChecked == true), "Autostart");
-    }
-
-    private async void OnGameFilterChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_rendering) return;
-
-        var mode = GameFilterCombo.SelectedIndex switch
+        Busy.Visibility = Visibility.Visible;
+        try
         {
-            1 => GameFilterMode.All,
-            2 => GameFilterMode.TcpOnly,
-            3 => GameFilterMode.UdpOnly,
-            _ => GameFilterMode.Off,
-        };
+            Report(await _client.SetServiceEnabledAsync(id, enabled), id);
 
-        Report(await _client.SetGameFilterAsync(mode), "Game filter");
-    }
-
-    private async void OnIpSetChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_rendering) return;
-
-        var mode = IpSetCombo.SelectedIndex switch
+            // Reload rather than trust the click: the file is the truth about what is enabled.
+            _loaded = false;
+            await LoadAsync();
+        }
+        finally
         {
-            1 => IpSetMode.None,
-            2 => IpSetMode.Loaded,
-            _ => IpSetMode.Any,
-        };
-
-        Report(await _client.SetIpSetModeAsync(mode), "IPSet filter");
+            Busy.Visibility = Visibility.Collapsed;
+        }
     }
 
-    private async void OnUpdateIpSet(object sender, RoutedEventArgs e)
+    private async Task RemoveAsync(string id)
     {
-        UpdateIpSetButton.IsEnabled = false;
-        Report(await _client.UpdateIpSetListAsync(), "IPSet list");
+        Busy.Visibility = Visibility.Visible;
+        try
+        {
+            Report(await _client.RemoveCustomServiceAsync(id), id);
+
+            _loaded = false;
+            await LoadAsync();
+        }
+        finally
+        {
+            Busy.Visibility = Visibility.Collapsed;
+        }
     }
 
-    private async void OnApplyHosts(object sender, RoutedEventArgs e)
+    private async void OnAddCustom(object sender, RoutedEventArgs e)
     {
-        ApplyHostsButton.IsEnabled = false;
-        Report(await _client.ApplyManagedHostsAsync(), "Hosts");
+        ErrorText.Visibility = Visibility.Collapsed;
+
+        var domains = DomainsBox.Text
+            .Split([',', ';', '\n', '\r', ' '], StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+
+        Busy.Visibility = Visibility.Visible;
+        AddButton.IsEnabled = false;
+
+        try
+        {
+            var outcome = await _client.AddCustomServiceAsync(
+                NameBox.Text,
+                domains,
+                string.IsNullOrWhiteSpace(CheckUrlBox.Text) ? null : CheckUrlBox.Text.Trim());
+
+            if (!outcome.Success)
+            {
+                // The service returns a localisation key for validation failures, so the reason is specific.
+                ErrorText.Text = outcome.NeedsElevation
+                    ? L["common.readOnly"]
+                    : outcome.Message is { } key && key.StartsWith("service.error.", StringComparison.Ordinal)
+                        ? L[key]
+                        : outcome.Message ?? L["updates.failed"];
+
+                ErrorText.Visibility = Visibility.Visible;
+                return;
+            }
+
+            NameBox.Clear();
+            DomainsBox.Clear();
+            CheckUrlBox.Clear();
+
+            _loaded = false;
+            await LoadAsync();
+        }
+        finally
+        {
+            Busy.Visibility = Visibility.Collapsed;
+            AddButton.IsEnabled = _client.CanModify;
+        }
     }
 
-    private async void OnRemoveHosts(object sender, RoutedEventArgs e)
+    private static void Report(OperationOutcome outcome, string title)
     {
-        RemoveHostsButton.IsEnabled = false;
-        Report(await _client.RemoveManagedHostsAsync(), "Hosts");
-    }
+        if (outcome.Success) return;
 
-    private void Report(OperationOutcome outcome, string title)
+        MainWindow.ShowMessage(
+            title,
+            outcome.NeedsElevation ? L["common.readOnly"] : outcome.Message ?? L["updates.failed"],
+            ControlAppearance.Caution);
+    }
+}
+
+public sealed class ServiceCategoryViewModel(string title, IEnumerable<ServiceToggleViewModel> items)
+{
+    public string Title { get; } = title;
+
+    public IReadOnlyList<ServiceToggleViewModel> Items { get; } = items.ToList();
+}
+
+public sealed class ServiceToggleViewModel
+{
+    public ServiceToggleViewModel(
+        ServiceCatalogItem item,
+        bool canModify,
+        Func<string, bool, Task> toggle,
+        Func<string, Task> remove)
     {
-        var loc = Localization.Loc.Instance;
+        Id = item.Id;
+        IsEnabled = item.IsEnabled;
+        IsCustom = item.IsCustom;
+        CanToggle = canModify;
+        DomainsText = string.Join(", ", item.Domains);
 
-        var message = outcome.Success
-            ? outcome.Message ?? loc["services.done"]
-            : outcome.NeedsElevation
-                ? loc["common.readOnly"]
-                : outcome.Message ?? loc["updates.failed"];
-
-        MainWindow.ShowMessage(title, message, outcome.Success ? ControlAppearance.Success : ControlAppearance.Caution);
-        Render();
+        ToggleCommand = new RelayCommand(() => toggle(Id, !IsEnabled), () => canModify);
+        RemoveCommand = new RelayCommand(() => remove(Id), () => canModify && IsCustom);
     }
+
+    public string Id { get; }
+    public string DomainsText { get; }
+    public bool IsEnabled { get; }
+    public bool IsCustom { get; }
+    public bool CanToggle { get; }
+    public RelayCommand ToggleCommand { get; }
+    public RelayCommand RemoveCommand { get; }
 }

@@ -49,6 +49,18 @@ public sealed class ManagerClient
     public Task<ServiceProbePayload?> ProbeServicesAsync(CancellationToken cancellationToken = default) =>
         _pipe.QueryAsync<ServiceProbePayload>(IpcOperations.ProbeServices, null, TimeSpan.FromSeconds(45), cancellationToken);
 
+    public Task<ServiceCatalogPayload?> GetServiceCatalogAsync(CancellationToken cancellationToken = default) =>
+        _pipe.QueryAsync<ServiceCatalogPayload>(IpcOperations.GetServiceCatalog, null, null, cancellationToken);
+
+    public Task<OperationOutcome> SetServiceEnabledAsync(string id, bool enabled, CancellationToken ct = default) =>
+        InvokeAsync(IpcOperations.SetServiceEnabled, new ServiceTogglePayload(id, enabled), ct, TimeSpan.FromMinutes(2));
+
+    public Task<OperationOutcome> AddCustomServiceAsync(string id, IReadOnlyList<string> domains, string? checkUrl, CancellationToken ct = default) =>
+        InvokeAsync(IpcOperations.AddCustomService, new CustomServicePayload(id, domains, checkUrl), ct, TimeSpan.FromMinutes(2));
+
+    public Task<OperationOutcome> RemoveCustomServiceAsync(string id, CancellationToken ct = default) =>
+        InvokeAsync(IpcOperations.RemoveCustomService, new IdPayload(id), ct, TimeSpan.FromMinutes(2));
+
     public Task<TestResultsPayload?> GetTestResultsAsync(CancellationToken cancellationToken = default) =>
         _pipe.QueryAsync<TestResultsPayload>(IpcOperations.GetTestResults, null, null, cancellationToken);
 

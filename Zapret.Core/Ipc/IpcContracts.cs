@@ -42,6 +42,10 @@ public static class IpcOperations
     public const string ApplyBestStrategy = "apply-best-strategy";
 
     public const string GetTestResults = "get-test-results";
+    public const string GetServiceCatalog = "get-service-catalog";
+    public const string SetServiceEnabled = "set-service-enabled";
+    public const string AddCustomService = "add-custom-service";
+    public const string RemoveCustomService = "remove-custom-service";
 
     /// <summary>
     /// Operations that change machine state. These require a caller in the local Administrators
@@ -52,6 +56,7 @@ public static class IpcOperations
         StartEngine, StopEngine, ApplyStrategy, SetRunMode, SetAutostart, SetGameFilter, SetIpSetMode,
         SaveUserList, InstallEngine, RollBackEngine, UpdateIpSetList,
         ApplyManagedHosts, RemoveManagedHosts, RunStrategyTests, RunFullTest, ApplyBestStrategy,
+        SetServiceEnabled, AddCustomService, RemoveCustomService,
     };
 
     public static bool RequiresAdministrator(string operation) => Mutating.Contains(operation);
@@ -206,6 +211,26 @@ public sealed record EngineUpdatePayload
 public sealed record OperationResultPayload(bool Success, string? Message = null);
 
 public sealed record ServiceProbeItem(string Name, bool Reachable, int? Milliseconds);
+
+public sealed record ServiceCatalogItem(
+    string Id,
+    string CategoryKey,
+    IReadOnlyList<string> Domains,
+    string? CheckUrl,
+    bool IsCustom,
+    bool IsEnabled);
+
+public sealed record ServiceCatalogPayload
+{
+    public IReadOnlyList<ServiceCatalogItem> Items { get; init; } = Array.Empty<ServiceCatalogItem>();
+
+    /// <summary>Lines the user wrote into the list by hand, which the manager preserves and never owns.</summary>
+    public int ManualEntryCount { get; init; }
+}
+
+public sealed record ServiceTogglePayload(string Id, bool Enabled);
+
+public sealed record CustomServicePayload(string Id, IReadOnlyList<string> Domains, string? CheckUrl);
 
 public sealed record ServiceProbePayload
 {

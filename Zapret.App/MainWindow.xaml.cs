@@ -39,7 +39,7 @@ public partial class MainWindow : Window
             ["services"] = () => new ServicesPage(client),
             ["diagnostics"] = () => new DiagnosticsPage(client),
             ["network"] = () => new NetworkPage(client),
-            ["settings"] = () => new SettingsPage(),
+            ["settings"] = () => new SettingsPage(client),
             ["updates"] = () => new UpdatesPage(client),
         };
 

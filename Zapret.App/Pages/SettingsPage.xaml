@@ -11,6 +11,85 @@
             <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,14"
                        Text="{Binding [nav.settings], Source={x:Static loc:Loc.Instance}}" />
 
+            <Border x:Name="ReadOnlyBanner" Style="{StaticResource Card}" Padding="14,10"
+                    Margin="{StaticResource GapBottom}" Visibility="Collapsed"
+                    Background="#221F6FE0" BorderBrush="{StaticResource BorderStrongBrush}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center"
+                               Foreground="{StaticResource AccentCyan}" Text="&#xE72E;" />
+                    <TextBlock Margin="10,0,0,0" Style="{StaticResource TextBase}" TextWrapping="Wrap"
+                               Text="{Binding [common.readOnly], Source={x:Static loc:Loc.Instance}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- engine: run mode and autostart -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [services.runMode], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [services.runModeHint], Source={x:Static loc:Loc.Instance}}" />
+
+                    <RadioButton x:Name="ManagedProcessRadio" GroupName="RunMode" Checked="OnRunModeChanged"
+                                 Content="{Binding [services.managedProcess], Source={x:Static loc:Loc.Instance}}" />
+                    <RadioButton x:Name="WindowsServiceRadio" GroupName="RunMode" Margin="0,8,0,0" Checked="OnRunModeChanged"
+                                 Content="{Binding [services.windowsService], Source={x:Static loc:Loc.Instance}}" />
+
+                    <CheckBox x:Name="AutostartBox" Margin="0,14,0,0" Click="OnAutostartChanged"
+                              Content="{Binding [services.autostart], Source={x:Static loc:Loc.Instance}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- engine: filters -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [settings.filters], Source={x:Static loc:Loc.Instance}}" />
+
+                    <TextBlock Margin="0,12,0,4" Style="{StaticResource TextSecondaryStyle}"
+                               Text="{Binding [system.gameFilter], Source={x:Static loc:Loc.Instance}}" />
+                    <ComboBox x:Name="GameFilterCombo" Width="300" HorizontalAlignment="Left" SelectionChanged="OnGameFilterChanged">
+                        <ComboBoxItem Content="{Binding [system.disabled], Source={x:Static loc:Loc.Instance}}" />
+                        <ComboBoxItem Content="TCP + UDP" />
+                        <ComboBoxItem Content="TCP" />
+                        <ComboBoxItem Content="UDP" />
+                    </ComboBox>
+                    <TextBlock Margin="0,6,0,0" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [services.gameFilterHint], Source={x:Static loc:Loc.Instance}}" />
+
+                    <TextBlock Margin="0,16,0,4" Style="{StaticResource TextSecondaryStyle}"
+                               Text="{Binding [system.ipsetFilter], Source={x:Static loc:Loc.Instance}}" />
+                    <ComboBox x:Name="IpSetCombo" Width="300" HorizontalAlignment="Left" SelectionChanged="OnIpSetChanged">
+                        <ComboBoxItem Content="{Binding [system.any], Source={x:Static loc:Loc.Instance}}" />
+                        <ComboBoxItem Content="{Binding [system.disabled], Source={x:Static loc:Loc.Instance}}" />
+                        <ComboBoxItem Content="{Binding [system.loaded], Source={x:Static loc:Loc.Instance}}" />
+                    </ComboBox>
+                    <TextBlock Margin="0,6,0,0" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [services.ipsetHint], Source={x:Static loc:Loc.Instance}}" />
+
+                    <Button x:Name="UpdateIpSetButton" Style="{StaticResource SecondaryButton}" Margin="0,12,0,0"
+                            HorizontalAlignment="Left" Click="OnUpdateIpSet"
+                            Content="{Binding [services.updateIpSet], Source={x:Static loc:Loc.Instance}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- engine: hosts -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [diagnostics.hosts], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock x:Name="HostsStateText" Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}"
+                               TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="ApplyHostsButton" Style="{StaticResource SecondaryButton}" Click="OnApplyHosts"
+                                Content="{Binding [services.applyHosts], Source={x:Static loc:Loc.Instance}}" />
+                        <Button x:Name="RemoveHostsButton" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"
+                                Click="OnRemoveHosts"
+                                Content="{Binding [services.removeHosts], Source={x:Static loc:Loc.Instance}}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <!-- language -->
             <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
                 <StackPanel>
