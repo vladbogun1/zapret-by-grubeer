@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.IO;
+using System.Net.Http;
 using System.Windows;
 using Zapret.Core;
 using Zapret.Core.AutoSelect;
@@ -27,6 +28,15 @@ public partial class App : System.Windows.Application
 
     public static ISettingsStore Settings { get; } =
         new SettingsStore(Path.Combine(AppPaths.LocalAppData, "shell.json"));
+
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(5) };
+
+    /// <summary>
+    /// Manager updates run in this process, unelevated: applying one means launching the installer, which asks
+    /// for elevation itself. Nothing here needs the privileged service.
+    /// </summary>
+    public static Zapret.Core.Update.ManagerUpdateService Updates { get; } =
+        new(Settings, new Zapret.Core.GitHub.GitHubReleaseClient(Http));
 
     protected override void OnStartup(StartupEventArgs e)
     {

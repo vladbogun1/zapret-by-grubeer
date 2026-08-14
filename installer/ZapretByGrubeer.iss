@@ -1,7 +1,7 @@
-; Inno Setup script for Запрет by Grubeer.
+﻿; Inno Setup script for Запрет by Grubeer.
 ;
 ; Build the payload first (from the repository root):
-;   dotnet publish Zapret.App\Zapret.App.csproj         -c Release -r win-x64 --self-contained true -o installer\payload
+;   dotnet publish Zapret.Shell\Zapret.Shell.csproj         -c Release -r win-x64 --self-contained true -o installer\payload
 ;   dotnet publish Zapret.Service\Zapret.Service.csproj -c Release -r win-x64 --self-contained true -o installer\payload
 ; Both publish into the same folder on purpose: they share the .NET runtime files, so the installer
 ; carries one copy instead of two.

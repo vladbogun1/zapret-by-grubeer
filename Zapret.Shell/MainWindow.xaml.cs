@@ -285,12 +285,74 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnToggleDetails(object sender, RoutedEventArgs e)
+    private async void OnToggleDetails(object sender, RoutedEventArgs e)
     {
         _detailsOpen = !_detailsOpen;
 
         Details.Visibility = _detailsOpen ? Visibility.Visible : Visibility.Collapsed;
         DetailsButton.Content = T[_detailsOpen ? "do.hideDetails" : "do.details"];
+
+        // Checked when the user opens the drawer, not on a timer: nobody needs an update badge on a screen
+        // whose whole point is that nothing needs doing.
+        if (_detailsOpen && !_updateChecked) await CheckUpdatesAsync();
+    }
+
+    // ---- updates: the only decision the product ever asks the user to make -------------------
+
+    private bool _updateChecked;
+    private Zapret.Core.GitHub.GitHubRelease? _managerRelease;
+
+    private async void OnCheckUpdates(object sender, RoutedEventArgs e) => await CheckUpdatesAsync();
+
+    private async Task CheckUpdatesAsync()
+    {
+        CheckButton.IsEnabled = false;
+        UpdateText.Text = T["up.checking"];
+
+        try
+        {
+            var info = await App.Updates.CheckAsync(force: true);
+            _updateChecked = true;
+            _managerRelease = info.Release;
+
+            if (info.Status == Zapret.Core.GitHub.ReleaseCheckStatus.Unavailable)
+            {
+                UpdateText.Text = T["up.offline"];
+                UpdateButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            if (info.UpdateAvailable)
+            {
+                UpdateText.Text = T.Format("up.available", info.LatestVersion);
+                UpdateButton.Content = T["up.update"];
+                UpdateButton.Visibility = Visibility.Visible;
+                return;
+            }
+
+            UpdateText.Text = T.Format("up.current", info.InstalledVersion, _state.EngineVersion ?? T["d.none"]);
+            UpdateButton.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            CheckButton.IsEnabled = true;
+        }
+    }
+
+    private async void OnUpdate(object sender, RoutedEventArgs e)
+    {
+        if (_managerRelease is null) return;
+
+        UpdateButton.IsEnabled = false;
+        try
+        {
+            var (started, error) = await App.Updates.DownloadAndRunInstallerAsync(_managerRelease);
+            UpdateText.Text = started ? T["up.started"] : error ?? T["up.offline"];
+        }
+        finally
+        {
+            UpdateButton.IsEnabled = true;
+        }
     }
 
     private void OnLanguage(object sender, RoutedEventArgs e)

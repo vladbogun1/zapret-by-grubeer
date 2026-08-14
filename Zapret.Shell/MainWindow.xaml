@@ -160,10 +160,25 @@
                                 Content="{Binding [do.details], Source={x:Static local:Text.Current}}" />
                     </StackPanel>
 
-                    <!-- Evidence. Expands in place; never navigates away. -->
+                    <!-- Evidence and the only other decision the product ever needs: an update.
+                         Expands in place; never navigates away. -->
                     <Border x:Name="Details" Style="{StaticResource CardBorder}" Margin="0,14,0,0" Visibility="Collapsed">
-                        <TextBlock x:Name="DetailsText" Style="{StaticResource Muted}" FontFamily="Consolas"
-                                   FontSize="12.5" TextWrapping="Wrap" />
+                        <StackPanel>
+                            <TextBlock x:Name="DetailsText" Style="{StaticResource Muted}" FontFamily="Consolas"
+                                       FontSize="12.5" TextWrapping="Wrap" />
+
+                            <Border Background="{StaticResource Line}" Height="1" Margin="0,14,0,14" />
+
+                            <TextBlock x:Name="UpdateText" Style="{StaticResource Muted}" TextWrapping="Wrap"
+                                       MaxWidth="620" HorizontalAlignment="Left" />
+
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button x:Name="UpdateButton" Style="{StaticResource PrimaryButton}" Height="36"
+                                        MinWidth="0" Padding="18,0" Visibility="Collapsed" Click="OnUpdate" />
+                                <Button x:Name="CheckButton" Style="{StaticResource QuietButton}" Click="OnCheckUpdates"
+                                        Content="{Binding [up.check], Source={x:Static local:Text.Current}}" />
+                            </StackPanel>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
             </Grid>

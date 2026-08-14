@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zapret.Core", "Zapret.Core\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zapret.Service", "Zapret.Service\Zapret.Service.csproj", "{2908097B-623E-4C15-93B5-16910BBF2733}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zapret.App", "Zapret.App\Zapret.App.csproj", "{1876D0CA-DF44-4745-859C-59B000B9A5AD}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zapret.Tests", "Zapret.Tests\Zapret.Tests.csproj", "{CFE3C635-A1C1-471A-B5FE-2E1049F66198}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zapret.Shell", "Zapret.Shell\Zapret.Shell.csproj", "{52BB3B2C-1083-4449-868E-D9C2DC2714CE}"
@@ -30,10 +28,6 @@ Global
 		{2908097B-623E-4C15-93B5-16910BBF2733}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2908097B-623E-4C15-93B5-16910BBF2733}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2908097B-623E-4C15-93B5-16910BBF2733}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1876D0CA-DF44-4745-859C-59B000B9A5AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1876D0CA-DF44-4745-859C-59B000B9A5AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1876D0CA-DF44-4745-859C-59B000B9A5AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1876D0CA-DF44-4745-859C-59B000B9A5AD}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CFE3C635-A1C1-471A-B5FE-2E1049F66198}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CFE3C635-A1C1-471A-B5FE-2E1049F66198}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CFE3C635-A1C1-471A-B5FE-2E1049F66198}.Release|Any CPU.ActiveCfg = Release|Any CPU

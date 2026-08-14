@@ -57,7 +57,7 @@ jobs:
         shell: pwsh
         run: |
           $v = '${{ steps.version.outputs.version }}'
-          dotnet publish Zapret.App/Zapret.App.csproj -c Release -r win-x64 --self-contained true `
+          dotnet publish Zapret.Shell/Zapret.Shell.csproj -c Release -r win-x64 --self-contained true `
             -p:ManagerVersion=$v -o installer/payload
           dotnet publish Zapret.Service/Zapret.Service.csproj -c Release -r win-x64 --self-contained true `
             -p:ManagerVersion=$v -o installer/payload

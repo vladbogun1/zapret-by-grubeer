@@ -124,6 +124,16 @@ public sealed class Text : INotifyPropertyChanged
         ["d.none"] = "нет",
         ["d.language"] = "Язык",
 
+        // updates — the only decision the product asks the user to make
+        ["up.check"] = "Проверить обновления",
+        ["up.checking"] = "Проверяем обновления…",
+        ["up.current"] = "Версия {0} — актуальная. Движок {1}.",
+        ["up.available"] = "Доступна версия {0}. Обновление устанавливается обычным установщиком, ваши настройки сохранятся.",
+        ["up.engineAvailable"] = "Доступна новая версия движка: {0}. Обновление проходит с откатом, если что-то пойдёт не так.",
+        ["up.update"] = "Обновить",
+        ["up.offline"] = "Не удалось проверить обновления. Это не мешает работе.",
+        ["up.started"] = "Установщик запущен.",
+
         // tray
         ["tray.open"] = "Открыть",
         ["tray.exit"] = "Выход",
@@ -188,6 +198,15 @@ public sealed class Text : INotifyPropertyChanged
         ["d.network"] = "Network",
         ["d.none"] = "none",
         ["d.language"] = "Language",
+
+        ["up.check"] = "Check for updates",
+        ["up.checking"] = "Checking for updates…",
+        ["up.current"] = "Version {0} is up to date. Engine {1}.",
+        ["up.available"] = "Version {0} is available. It installs with the usual installer and keeps your settings.",
+        ["up.engineAvailable"] = "A new engine version is available: {0}. The update rolls back if anything goes wrong.",
+        ["up.update"] = "Update",
+        ["up.offline"] = "Could not check for updates. This does not affect anything.",
+        ["up.started"] = "The installer has been started.",
 
         ["tray.open"] = "Open",
         ["tray.exit"] = "Exit",

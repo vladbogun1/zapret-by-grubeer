@@ -1,4 +1,4 @@
-# Запрет by Grubeer
+﻿# Запрет by Grubeer
 
 A native Windows 11 manager for the [Flowseal/zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube)
 DPI bypass engine: it installs, validates, updates and rolls back the engine, discovers whatever
@@ -21,7 +21,7 @@ unmodified, never renamed, and this project is not affiliated with or endorsed b
 ```text
 Zapret.Core/       engine adapter, strategy parser, update transaction, GitHub client, IPC contracts
 Zapret.Service/    Windows service: privileged lifecycle owner and named-pipe endpoint
-Zapret.App/        WPF UI and tray, runs unelevated
+Zapret.Shell/      the 2.0 interface: one screen, unelevated
 Zapret.Tests/      unit tests over real upstream fixtures
 installer/         Inno Setup script (planned)
 ```
