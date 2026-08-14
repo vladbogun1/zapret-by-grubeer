@@ -13,7 +13,8 @@
 
   <!-- Manager version. Independent of the Flowseal engine version by design. -->
   <PropertyGroup>
-    <ManagerVersion>1.0.0</ManagerVersion>
+    <!-- CI overrides this from the release tag; this is the version a local build produces. -->
+    <ManagerVersion>1.1.0</ManagerVersion>
     <Version>$(ManagerVersion)</Version>
     <AssemblyVersion>$(ManagerVersion).0</AssemblyVersion>
     <FileVersion>$(ManagerVersion).0</FileVersion>
