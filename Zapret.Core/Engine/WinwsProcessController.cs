@@ -58,7 +58,7 @@ public sealed class WinwsProcessController(ILogger<WinwsProcessController>? logg
                 return Fault($"{UpstreamLayout.EngineExecutableName} is missing from {runtime.Directory}");
             }
 
-            WarnAboutForeignEngines();
+            ReclaimOrphanedEngines();
 
             var startInfo = new ProcessStartInfo
             {
@@ -243,25 +243,46 @@ public sealed class WinwsProcessController(ILogger<WinwsProcessController>? logg
     }
 
     /// <summary>
-    /// An engine started outside the manager (upstream's own .bat) would fight ours over WinDivert.
-    /// Worth a log line, not worth killing someone else's process behind their back.
+    /// WinDivert allows one capture at a time, so a leftover engine makes a fresh start fail with a bare
+    /// exit code 1 that explains nothing. This is not someone else's process to protect: the manager owns
+    /// the engine lifecycle, and an engine running while the manager believes nothing is running is an
+    /// orphan from a previous session or from upstream's own scripts. Reclaiming it is what makes
+    /// start-after-restart reliable — the alternative is a mystery failure the user cannot act on.
     /// </summary>
-    private void WarnAboutForeignEngines()
+    private void ReclaimOrphanedEngines()
     {
+        Process[] orphans;
         try
         {
-            var others = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(UpstreamLayout.EngineExecutableName));
-            if (others.Length == 0) return;
-
-            _logger.LogWarning(
-                "{Count} winws.exe process(es) are already running, possibly started outside {Product}. WinDivert allows only one.",
-                others.Length, AppPaths.DisplayName);
-
-            foreach (var other in others) other.Dispose();
+            orphans = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(UpstreamLayout.EngineExecutableName));
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             _logger.LogDebug(ex, "Could not enumerate existing engine processes");
+            return;
+        }
+
+        if (orphans.Length == 0) return;
+
+        _logger.LogWarning(
+            "{Count} orphaned {Executable} process(es) still hold WinDivert; stopping them before starting a new one",
+            orphans.Length, UpstreamLayout.EngineExecutableName);
+
+        foreach (var orphan in orphans)
+        {
+            try
+            {
+                orphan.Kill(entireProcessTree: true);
+                orphan.WaitForExit(5000);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                _logger.LogWarning(ex, "Could not stop orphaned engine process {Pid}", orphan.Id);
+            }
+            finally
+            {
+                orphan.Dispose();
+            }
         }
     }
 
