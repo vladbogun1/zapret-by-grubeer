@@ -72,7 +72,19 @@ jobs:
         shell: pwsh
         run: |
           $v = '${{ steps.version.outputs.version }}'
-          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$v" installer/ZapretByGrubeer.iss
+
+          # ${env:ProgramFiles(x86)} needs the braces: without them PowerShell reads $env:ProgramFiles
+          # and leaves "(x86)" as a literal, which is how the first run failed. Both locations are
+          # checked so a future runner image that installs 64-bit Inno Setup keeps working.
+          $iscc = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+          if (-not $iscc) { throw "ISCC.exe was not found after installing Inno Setup" }
+          Write-Host "using $iscc"
+
+          & $iscc "/DAppVersion=$v" installer/ZapretByGrubeer.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
 
           $setup = Get-Item "installer/Output/ZapretByGrubeer-$v-setup.exe"
