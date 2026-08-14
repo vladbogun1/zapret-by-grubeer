@@ -146,6 +146,12 @@ public sealed record TestResultsPayload
 
     /// <summary>True when the stored sweep was measured on the engine and network in use right now.</summary>
     public bool IsCurrent { get; init; }
+
+    /// <summary>
+    /// False when every strategy scored identically, which happens on a connection where nothing under test
+    /// is blocked. No item is marked best in that case: there is nothing to recommend.
+    /// </summary>
+    public bool IsDiscriminating { get; init; }
 }
 
 public sealed record StrategyPayload

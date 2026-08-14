@@ -422,10 +422,13 @@ public sealed class DashboardViewModel : ObservableObject
             var rank = 1;
             foreach (var item in payload.Items) StrategyResults.Add(new StrategyResultRowViewModel(rank++, item));
 
-            if (payload.Items.Count > 0 && !payload.IsCurrent)
-            {
-                TestResultsNote = Loc.Instance["testing.stale"];
-            }
+            TestResultsNote =
+                payload.Items.Count == 0 ? null
+                : !payload.IsCurrent ? Loc.Instance["testing.stale"]
+
+                // The honest reading of an all-identical sweep: nothing to choose between.
+                : !payload.IsDiscriminating ? Loc.Instance["testing.noDifference"]
+                : null;
         }
 
         Raise(nameof(HasRankedResults));

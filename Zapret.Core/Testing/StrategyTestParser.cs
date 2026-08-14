@@ -154,6 +154,38 @@ public static class StrategyTestParser
         return best is null || best.PassedCount == 0 ? null : best;
     }
 
+    /// <summary>
+    /// Whether the sweep actually separated the strategies. On a connection where nothing under test is
+    /// blocked, every strategy passes every target with the same latency — and then there is no winner, only
+    /// a tie-break artefact. Observed on a real run: all 21 strategies at 100% and 27 ms.
+    /// <para>
+    /// Crowning the first of twenty-one identical results as "recommended" would be a lie the user cannot
+    /// see through, so callers use this to say "no difference measured" instead.
+    /// </para>
+    /// </summary>
+    /// <summary>
+    /// Latency spread below this is measurement jitter, not a difference between strategies. Chosen from a
+    /// real sweep where all 21 strategies passed every target and the averages split into 27 ms and 28 ms:
+    /// exact comparison called that "discriminating" and would have crowned one of ten equally fast
+    /// strategies over a single millisecond.
+    /// </summary>
+    public const int LatencyToleranceMilliseconds = 10;
+
+    public static bool IsDiscriminating(IEnumerable<StrategyTestResult> results)
+    {
+        var measured = results.Where(r => r.TotalCount > 0).ToList();
+        if (measured.Count < 2) return false;
+
+        // Any difference in what actually worked is real and decides it.
+        var scores = measured.Select(r => r.SuccessPercent).ToList();
+        if (scores.Max() != scores.Min()) return true;
+
+        var latencies = measured.Select(r => r.AveragePing).Where(p => p is not null).Select(p => p!.Value).ToList();
+        if (latencies.Count < 2) return false;
+
+        return latencies.Max() - latencies.Min() >= LatencyToleranceMilliseconds;
+    }
+
     private static IEnumerable<string> Lines(string output) =>
         output.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
 }

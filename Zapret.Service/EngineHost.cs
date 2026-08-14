@@ -307,6 +307,16 @@ public sealed class EngineHost(
             return new OperationResultPayload(false, "No strategy has passed a test yet. Run the full test first.");
         }
 
+        // Applying something sensible is still useful when everything tied; claiming it is the best is not.
+        if (session is not null && !StrategyTestParser.IsDiscriminating(session.Results))
+        {
+            var applied = await StartAsync(best.StrategyId, cancellationToken).ConfigureAwait(false);
+
+            return applied.Success
+                ? new OperationResultPayload(true, $"All strategies scored the same on this network; kept {StrategyBatParser.ToDisplayName(best.StrategyId)}.")
+                : applied;
+        }
+
         return await StartAsync(best.StrategyId, cancellationToken).ConfigureAwait(false);
     }
 
@@ -316,9 +326,13 @@ public sealed class EngineHost(
         if (session is null) return new TestResultsPayload();
 
         var ranked = session.Ranked();
-        var best = session.Best();
         var runtime = Runtime;
         var network = NetworkIdentity.Detect();
+
+        // With every strategy scoring identically there is no winner, only a tie-break artefact, so nothing
+        // is marked best and the UI says so instead of pointing at an arbitrary row.
+        var discriminating = StrategyTestParser.IsDiscriminating(session.Results);
+        var best = discriminating ? session.Best() : null;
 
         return new TestResultsPayload
         {
@@ -329,6 +343,8 @@ public sealed class EngineHost(
             // Results measured on another engine build or another connection are shown, but marked stale.
             IsCurrent = string.Equals(session.EngineVersion, runtime?.Version.Raw, StringComparison.OrdinalIgnoreCase)
                         && string.Equals(session.NetworkId, network.Id, StringComparison.OrdinalIgnoreCase),
+
+            IsDiscriminating = discriminating,
 
             Items = ranked.Select(r => new StrategyResultItem(
                 r.StrategyId,

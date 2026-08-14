@@ -123,6 +123,70 @@ public sealed class StrategyTestParserTests
         Assert.Equal("c", StrategyTestParser.SelectBest(results)!.StrategyId);
     }
 
+    /// <summary>
+    /// The case observed on a real connection: all 21 strategies at 100% and the same latency. Ranking still
+    /// returns an order, but there is no winner in it, and the product must not pretend otherwise.
+    /// </summary>
+    [Fact]
+    public void An_all_identical_sweep_is_not_discriminating()
+    {
+        var identical = Enumerable.Range(1, 21).Select(i => new StrategyTestResult
+        {
+            StrategyId = $"general (ALT{i})",
+            Targets = [new("t", true, 27), new("u", true, 27)],
+        }).ToList();
+
+        Assert.False(StrategyTestParser.IsDiscriminating(identical));
+
+        // SelectBest still answers, so "apply something" keeps working; the caller decides what to claim.
+        Assert.NotNull(StrategyTestParser.SelectBest(identical));
+    }
+
+    /// <summary>
+    /// The exact shape of the real run: identical success, averages one millisecond apart. That is jitter, and
+    /// treating it as a ranking would crown one of ten equally fast strategies for no reason.
+    /// </summary>
+    [Fact]
+    public void A_one_millisecond_spread_is_jitter_not_a_ranking()
+    {
+        var jitter = Enumerable.Range(1, 21).Select(i => new StrategyTestResult
+        {
+            StrategyId = $"general (ALT{i})",
+            Targets = [new("t", true, i % 2 == 0 ? 27 : 28)],
+        }).ToList();
+
+        Assert.False(StrategyTestParser.IsDiscriminating(jitter));
+    }
+
+    [Fact]
+    public void A_sweep_that_separates_strategies_is_discriminating()
+    {
+        var mixed = new[]
+        {
+            new StrategyTestResult { StrategyId = "a", Targets = [new("t", true, 27), new("u", true, 27)] },
+            new StrategyTestResult { StrategyId = "b", Targets = [new("t", true, 27), new("u", false, null)] },
+        };
+
+        Assert.True(StrategyTestParser.IsDiscriminating(mixed));
+
+        // Equal success but a latency gap well past the tolerance still separates them.
+        var latency = new[]
+        {
+            new StrategyTestResult { StrategyId = "a", Targets = [new("t", true, 10)] },
+            new StrategyTestResult { StrategyId = "b", Targets = [new("t", true, 90)] },
+        };
+
+        Assert.True(StrategyTestParser.IsDiscriminating(latency));
+    }
+
+    [Fact]
+    public void A_single_measured_strategy_cannot_discriminate()
+    {
+        var single = new[] { new StrategyTestResult { StrategyId = "a", Targets = [new("t", true, 27)] } };
+
+        Assert.False(StrategyTestParser.IsDiscriminating(single));
+    }
+
     [Fact]
     public void A_run_where_nothing_passed_yields_no_recommendation()
     {
