@@ -24,7 +24,8 @@ public sealed class EngineHost(
     ArchiveExtractor extractor,
     HostsManager hosts,
     TcpTimestamps timestamps,
-    ITargetProbe targetProbe,
+    HttpTargetProbe targetProbe,
+    ManagerEventLog events,
     HttpClient http,
     ILoggerFactory loggerFactory,
     ILogger<EngineHost> logger)
@@ -184,6 +185,8 @@ public sealed class EngineHost(
             }
 
             engineState.Write(engineState.Read() with { StrategyId = strategy.Id });
+            events.Add(ManagerEventLevel.Success, ManagerEvents.StrategyApplied, strategy.DisplayName);
+
             return new OperationResultPayload(true, $"{strategy.DisplayName} is running.");
         }
         finally
@@ -195,8 +198,38 @@ public sealed class EngineHost(
     public async Task<OperationResultPayload> StopAsync(CancellationToken cancellationToken)
     {
         await ActiveController.StopAsync(cancellationToken).ConfigureAwait(false);
+        events.Add(ManagerEventLevel.Information, ManagerEvents.EngineStopped);
+
         return new OperationResultPayload(true, "The engine is stopped.");
     }
+
+    /// <summary>
+    /// Reachability of the services the dashboard reports on. A read, so any signed-in user may run it,
+    /// and the result is never inferred from the engine merely being up.
+    /// </summary>
+    public async Task<ServiceProbePayload> ProbeServicesAsync(CancellationToken cancellationToken)
+    {
+        var results = await targetProbe.ProbeDetailedAsync(cancellationToken).ConfigureAwait(false);
+
+        var payload = new ServiceProbePayload
+        {
+            Items = results.Select(r => new ServiceProbeItem(r.Name, r.Reachable, r.Milliseconds)).ToList(),
+            CheckedUtc = DateTimeOffset.UtcNow,
+        };
+
+        var failed = payload.Items.Count - payload.ReachableCount;
+        events.Add(failed == 0 ? ManagerEventLevel.Success : ManagerEventLevel.Warning,
+            ManagerEvents.ServicesProbed, failed == 0 ? null : failed.ToString());
+
+        return payload;
+    }
+
+    public EventsPayload GetEvents(int count) => new()
+    {
+        Items = events.Snapshot(count)
+            .Select(e => new EventItem(e.Utc, e.Level, e.MessageKey, e.Argument))
+            .ToList(),
+    };
 
     public async Task<OperationResultPayload> SetRunModeAsync(EngineRunMode mode, CancellationToken cancellationToken)
     {
@@ -372,6 +405,19 @@ public sealed class EngineHost(
 
         var outcome = await service.InstallAsync(release, progress: null, cancellationToken).ConfigureAwait(false);
         InvalidateRuntime();
+
+        if (outcome.Success)
+        {
+            events.Add(ManagerEventLevel.Success,
+                outcome.PreviousVersion is null ? ManagerEvents.EngineInstalled : ManagerEvents.EngineUpdated,
+                outcome.ActiveVersion);
+        }
+        else
+        {
+            events.Add(ManagerEventLevel.Error,
+                outcome.RolledBack ? ManagerEvents.EngineRolledBack : ManagerEvents.EngineUpdateFailed,
+                outcome.ActiveVersion);
+        }
 
         return ToPayload(outcome);
     }

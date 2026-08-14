@@ -93,24 +93,45 @@ public sealed class TcpTimestamps(ILogger<TcpTimestamps>? logger = null)
 /// </summary>
 public sealed class HttpTargetProbe(HttpClient http, ILogger<HttpTargetProbe>? logger = null) : Engine.ITargetProbe
 {
-    private static readonly (string Name, string Url)[] Targets =
+    /// <summary>
+    /// The services the dashboard reports on. Names are technical identifiers, not display strings: the
+    /// UI localises them, and these never appear to a user verbatim.
+    /// </summary>
+    public static readonly (string Name, string Url)[] Targets =
     [
         ("Discord", "https://discord.com/app"),
         ("YouTube", "https://www.youtube.com/generate_204"),
+        ("Telegram", "https://web.telegram.org/"),
+        ("Cloudflare", "https://cloudflare.com/cdn-cgi/trace"),
     ];
 
     private readonly ILogger _logger = logger ?? NullLogger<HttpTargetProbe>.Instance;
 
     public async Task<IReadOnlyDictionary<string, bool>> ProbeAsync(CancellationToken cancellationToken = default)
     {
-        var results = new Dictionary<string, bool>(Targets.Length);
+        // Probed in parallel: four sequential six-second timeouts would make the dashboard feel broken.
+        var probes = Targets.Select(async target =>
+            (target.Name, Reachable: await ReachableAsync(target.Url, cancellationToken).ConfigureAwait(false)));
 
-        foreach (var (name, url) in Targets)
+        var results = await Task.WhenAll(probes).ConfigureAwait(false);
+
+        return results.ToDictionary(r => r.Name, r => r.Reachable, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Reachability plus latency, for the dashboard's average-response metric.</summary>
+    public async Task<IReadOnlyList<(string Name, bool Reachable, int? Milliseconds)>> ProbeDetailedAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var probes = Targets.Select(async target =>
         {
-            results[name] = await ReachableAsync(url, cancellationToken).ConfigureAwait(false);
-        }
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var reachable = await ReachableAsync(target.Url, cancellationToken).ConfigureAwait(false);
+            stopwatch.Stop();
 
-        return results;
+            return (target.Name, reachable, reachable ? (int?)stopwatch.ElapsedMilliseconds : null);
+        });
+
+        return await Task.WhenAll(probes).ConfigureAwait(false);
     }
 
     private async Task<bool> ReachableAsync(string url, CancellationToken cancellationToken)

@@ -178,6 +178,12 @@ public sealed class ZapretPipeServer(EngineHost host, ILogger<ZapretPipeServer> 
                 return Ok(payload with { Content = host.GetLogTail(payload.Source, payload.Lines) });
             }
 
+            case IpcOperations.ProbeServices:
+                return Ok(await host.ProbeServicesAsync(cancellationToken).ConfigureAwait(false));
+
+            case IpcOperations.GetEvents:
+                return Ok(host.GetEvents(20));
+
             case IpcOperations.StartEngine:
                 return Ok(await host.StartAsync(null, cancellationToken).ConfigureAwait(false));
 

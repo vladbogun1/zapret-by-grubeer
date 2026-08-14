@@ -31,6 +31,12 @@ public partial class App : System.Windows.Application
     public static ManagerClient Client { get; } = new();
 
     /// <summary>
+    /// Shell navigation hook, set by the main window. Pages raise navigation intents by key rather than
+    /// reaching into the window, so a page never depends on the shell's implementation.
+    /// </summary>
+    public static Action<string>? Navigate { get; set; }
+
+    /// <summary>
     /// UI-scoped settings. The service owns the machine-wide file under %ProgramData%, which a standard
     /// user cannot write, so the UI keeps its own preferences and release-feed memory per user
     /// (ADR-0002). Anything machine-wide is changed through the service instead.
@@ -59,13 +65,32 @@ public partial class App : System.Windows.Application
 
         AppPaths.EnsureUserDirectories();
 
+        // A UI crash must leave evidence a user can send, not just a Windows error dialog.
+        DispatcherUnhandledException += (_, args) =>
+        {
+            LogCrash("dispatcher", args.Exception);
+            args.Handled = false;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, args) => LogCrash("domain", args.ExceptionObject as Exception);
+
         base.OnStartup(e);
+
+        // Language before any window exists, so nothing renders in the wrong language even for a frame.
+        Localization.Loc.Instance.Apply(Settings.Read().Language);
 
         ApplyTheme();
         CreateTrayIcon();
         WatchForActivationRequests();
 
-        _window = new MainWindow(Client);
+        try
+        {
+            _window = new MainWindow(Client);
+        }
+        catch (Exception ex)
+        {
+            LogCrash("startup", ex);
+            throw;
+        }
 
         var startHidden = e.Args.Contains(TrayArgument, StringComparer.OrdinalIgnoreCase);
         if (!startHidden) ShowMainWindow();
@@ -137,6 +162,23 @@ public partial class App : System.Windows.Application
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowMainWindow);
 
         Client.Changed += UpdateTrayTooltip;
+    }
+
+    private static void LogCrash(string stage, Exception? exception)
+    {
+        if (exception is null) return;
+
+        try
+        {
+            Directory.CreateDirectory(AppPaths.LocalAppData);
+            File.AppendAllText(
+                Path.Combine(AppPaths.LocalAppData, "ui-crash.log"),
+                $"{DateTimeOffset.UtcNow:u} [{stage}] {exception}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch (Exception)
+        {
+            // Reporting a crash must never cause one.
+        }
     }
 
     private static Icon LoadProductIcon()

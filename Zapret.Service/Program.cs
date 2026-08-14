@@ -54,8 +54,12 @@ builder.Services.AddSingleton(_ => new HttpClient { Timeout = TimeSpan.FromMinut
 builder.Services.AddSingleton<IGitHubReleaseClient>(sp =>
     new GitHubReleaseClient(sp.GetRequiredService<HttpClient>(), sp.GetRequiredService<ILogger<GitHubReleaseClient>>()));
 
-builder.Services.AddSingleton<ITargetProbe>(sp =>
+builder.Services.AddSingleton(sp =>
     new HttpTargetProbe(sp.GetRequiredService<HttpClient>(), sp.GetRequiredService<ILogger<HttpTargetProbe>>()));
+builder.Services.AddSingleton<ITargetProbe>(sp => sp.GetRequiredService<HttpTargetProbe>());
+
+// A bounded, in-memory history of what actually happened, surfaced on the dashboard.
+builder.Services.AddSingleton(_ => new ManagerEventLog());
 
 builder.Services.TryAddSingleton<EngineHost>();
 

@@ -6,8 +6,11 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <!-- Replaced at startup by the user's choice or the system theme. -->
-                <ui:ThemesDictionary Theme="Light" />
+                <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
+
+                <!-- The product's own design tokens. Loaded last so they win over library defaults. -->
+                <ResourceDictionary Source="Themes/Tokens.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <Thickness x:Key="PageMargin">24,20,24,24</Thickness>

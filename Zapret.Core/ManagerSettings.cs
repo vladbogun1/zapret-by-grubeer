@@ -35,6 +35,12 @@ public sealed record ManagerSettings
     public string? ThemeOverride { get; set; }
 
     /// <summary>
+    /// UI language as a BCP-47 tag. null follows Windows, falling back to English when the system
+    /// language has no translation.
+    /// </summary>
+    public string? Language { get; set; }
+
+    /// <summary>
     /// Set when the manager itself enabled TCP timestamps, so uninstall can offer to put the setting
     /// back. A value the manager did not change is never restored.
     /// </summary>

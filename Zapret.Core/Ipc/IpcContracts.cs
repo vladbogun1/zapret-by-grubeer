@@ -15,6 +15,10 @@ public static class IpcOperations
     public const string ListStrategies = "list-strategies";
     public const string GetUserList = "get-user-list";
     public const string GetLogTail = "get-log-tail";
+    public const string GetEvents = "get-events";
+
+    /// <summary>Network reads only, so any signed-in user may run it.</summary>
+    public const string ProbeServices = "probe-services";
 
     public const string StartEngine = "start-engine";
     public const string StopEngine = "stop-engine";
@@ -155,3 +159,30 @@ public sealed record EngineUpdatePayload
 }
 
 public sealed record OperationResultPayload(bool Success, string? Message = null);
+
+public sealed record ServiceProbeItem(string Name, bool Reachable, int? Milliseconds);
+
+public sealed record ServiceProbePayload
+{
+    public IReadOnlyList<ServiceProbeItem> Items { get; init; } = Array.Empty<ServiceProbeItem>();
+    public DateTimeOffset? CheckedUtc { get; init; }
+
+    public int ReachableCount => Items.Count(i => i.Reachable);
+
+    /// <summary>Average latency across reachable services, or null when nothing answered.</summary>
+    public int? AverageMilliseconds
+    {
+        get
+        {
+            var values = Items.Where(i => i is { Reachable: true, Milliseconds: not null }).Select(i => i.Milliseconds!.Value).ToList();
+            return values.Count == 0 ? null : (int)Math.Round(values.Average());
+        }
+    }
+}
+
+public sealed record EventItem(DateTimeOffset Utc, ManagerEventLevel Level, string MessageKey, string? Argument);
+
+public sealed record EventsPayload
+{
+    public IReadOnlyList<EventItem> Items { get; init; } = Array.Empty<EventItem>();
+}

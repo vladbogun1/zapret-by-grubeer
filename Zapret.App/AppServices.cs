@@ -46,6 +46,12 @@ public sealed class ManagerClient
         Changed?.Invoke();
     }
 
+    public Task<ServiceProbePayload?> ProbeServicesAsync(CancellationToken cancellationToken = default) =>
+        _pipe.QueryAsync<ServiceProbePayload>(IpcOperations.ProbeServices, null, TimeSpan.FromSeconds(45), cancellationToken);
+
+    public Task<EventsPayload?> GetEventsAsync(CancellationToken cancellationToken = default) =>
+        _pipe.QueryAsync<EventsPayload>(IpcOperations.GetEvents, null, null, cancellationToken);
+
     public Task<StrategyListPayload?> GetStrategiesAsync(CancellationToken cancellationToken = default) =>
         _pipe.QueryAsync<StrategyListPayload>(IpcOperations.ListStrategies, null, null, cancellationToken);
 
