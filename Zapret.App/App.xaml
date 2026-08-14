@@ -1,9 +1,17 @@
-﻿<Application x:Class="Zapret.App.App"
+<Application x:Class="Zapret.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:Zapret.App"
-             StartupUri="MainWindow.xaml">
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Replaced at startup by the user's choice or the system theme. -->
+                <ui:ThemesDictionary Theme="Light" />
+                <ui:ControlsDictionary />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Thickness x:Key="PageMargin">24,20,24,24</Thickness>
+            <Thickness x:Key="CardMargin">0,0,0,12</Thickness>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
