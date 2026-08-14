@@ -1,101 +1,95 @@
 <Page x:Class="Zapret.App.Pages.ServicesPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-      Title="Services">
+      xmlns:loc="clr-namespace:Zapret.App.Localization"
+      Background="Transparent"
+      FontFamily="{StaticResource AppFontText}">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="{StaticResource PageMargin}">
+        <StackPanel Margin="{StaticResource PagePadding}" MaxWidth="900" HorizontalAlignment="Left">
 
-            <ui:TextBlock FontTypography="Subtitle" Text="Services and filters" Margin="0,0,0,12" />
+            <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,14"
+                       Text="{Binding [services.pageTitle], Source={x:Static loc:Loc.Instance}}" />
 
-            <ui:InfoBar x:Name="ReadOnlyBanner"
-                        Severity="Informational"
-                        Title="Read-only"
-                        Message="Changing these settings requires administrator rights."
-                        IsClosable="False"
-                        Margin="{StaticResource CardMargin}"
-                        Visibility="Collapsed" />
-
-            <ui:Card Margin="{StaticResource CardMargin}">
-                <StackPanel>
-                    <ui:TextBlock FontTypography="BodyStrong" Text="Run mode" />
-                    <ui:TextBlock Margin="0,4,0,10"
-                                  Appearance="Secondary"
-                                  TextWrapping="Wrap"
-                                  Text="How the engine is kept alive. Managed process gives accurate status and captured logs; the Windows service mode is byte-compatible with what upstream's own service.bat installs." />
-
-                    <RadioButton x:Name="ManagedProcessRadio"
-                                 GroupName="RunMode"
-                                 Content="Managed process (recommended)"
-                                 Checked="OnRunModeChanged" />
-                    <RadioButton x:Name="WindowsServiceRadio"
-                                 GroupName="RunMode"
-                                 Content="Windows service named zapret (upstream compatible)"
-                                 Checked="OnRunModeChanged" />
-
-                    <CheckBox x:Name="AutostartBox"
-                              Margin="0,10,0,0"
-                              Content="Start the engine with Windows"
-                              Click="OnAutostartChanged" />
+            <Border x:Name="ReadOnlyBanner" Style="{StaticResource Card}" Padding="14,10"
+                    Margin="{StaticResource GapBottom}" Visibility="Collapsed"
+                    Background="#221F6FE0" BorderBrush="{StaticResource BorderStrongBrush}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center"
+                               Foreground="{StaticResource AccentCyan}" Text="&#xE72E;" />
+                    <TextBlock Margin="10,0,0,0" Style="{StaticResource TextBase}" TextWrapping="Wrap"
+                               Text="{Binding [common.readOnly], Source={x:Static loc:Loc.Instance}}" />
                 </StackPanel>
-            </ui:Card>
+            </Border>
 
-            <ui:Card Margin="{StaticResource CardMargin}">
+            <!-- run mode -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
                 <StackPanel>
-                    <ui:TextBlock FontTypography="BodyStrong" Text="Game filter" />
-                    <ui:TextBlock Margin="0,4,0,10"
-                                  Appearance="Secondary"
-                                  TextWrapping="Wrap"
-                                  Text="Extends the bypass to the high port range games use. Changing it restarts the engine, because the ports are part of its command line." />
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [services.runMode], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [services.runModeHint], Source={x:Static loc:Loc.Instance}}" />
 
-                    <ComboBox x:Name="GameFilterCombo" Width="280" HorizontalAlignment="Left" SelectionChanged="OnGameFilterChanged">
-                        <ComboBoxItem Content="Disabled" />
-                        <ComboBoxItem Content="TCP and UDP" />
-                        <ComboBoxItem Content="TCP only" />
-                        <ComboBoxItem Content="UDP only" />
+                    <RadioButton x:Name="ManagedProcessRadio" GroupName="RunMode" Checked="OnRunModeChanged"
+                                 Content="{Binding [services.managedProcess], Source={x:Static loc:Loc.Instance}}" />
+                    <RadioButton x:Name="WindowsServiceRadio" GroupName="RunMode" Margin="0,8,0,0" Checked="OnRunModeChanged"
+                                 Content="{Binding [services.windowsService], Source={x:Static loc:Loc.Instance}}" />
+
+                    <CheckBox x:Name="AutostartBox" Margin="0,14,0,0" Click="OnAutostartChanged"
+                              Content="{Binding [services.autostart], Source={x:Static loc:Loc.Instance}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- game filter -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [system.gameFilter], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [services.gameFilterHint], Source={x:Static loc:Loc.Instance}}" />
+                    <ComboBox x:Name="GameFilterCombo" Width="300" HorizontalAlignment="Left" SelectionChanged="OnGameFilterChanged">
+                        <ComboBoxItem Content="{Binding [system.disabled], Source={x:Static loc:Loc.Instance}}" />
+                        <ComboBoxItem Content="TCP + UDP" />
+                        <ComboBoxItem Content="TCP" />
+                        <ComboBoxItem Content="UDP" />
                     </ComboBox>
                 </StackPanel>
-            </ui:Card>
+            </Border>
 
-            <ui:Card Margin="{StaticResource CardMargin}">
+            <!-- ipset -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
                 <StackPanel>
-                    <ui:TextBlock FontTypography="BodyStrong" Text="IPSet filter" />
-                    <ui:TextBlock Margin="0,4,0,10"
-                                  Appearance="Secondary"
-                                  TextWrapping="Wrap"
-                                  Text="Whether the engine restricts itself to upstream's address list. Loaded needs the list to have been downloaded at least once." />
-
-                    <ComboBox x:Name="IpSetCombo" Width="280" HorizontalAlignment="Left" SelectionChanged="OnIpSetChanged">
-                        <ComboBoxItem Content="Any address" />
-                        <ComboBoxItem Content="Disabled" />
-                        <ComboBoxItem Content="Loaded list" />
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [system.ipsetFilter], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [services.ipsetHint], Source={x:Static loc:Loc.Instance}}" />
+                    <ComboBox x:Name="IpSetCombo" Width="300" HorizontalAlignment="Left" SelectionChanged="OnIpSetChanged">
+                        <ComboBoxItem Content="{Binding [system.any], Source={x:Static loc:Loc.Instance}}" />
+                        <ComboBoxItem Content="{Binding [system.disabled], Source={x:Static loc:Loc.Instance}}" />
+                        <ComboBoxItem Content="{Binding [system.loaded], Source={x:Static loc:Loc.Instance}}" />
                     </ComboBox>
-
-                    <ui:Button x:Name="UpdateIpSetButton"
-                               Margin="0,10,0,0"
-                               Content="Update IPSet list"
-                               Icon="{ui:SymbolIcon ArrowDownload24}"
-                               HorizontalAlignment="Left"
-                               Click="OnUpdateIpSet" />
+                    <Button x:Name="UpdateIpSetButton" Style="{StaticResource SecondaryButton}" Margin="0,12,0,0"
+                            HorizontalAlignment="Left" Click="OnUpdateIpSet"
+                            Content="{Binding [services.updateIpSet], Source={x:Static loc:Loc.Instance}}" />
                 </StackPanel>
-            </ui:Card>
+            </Border>
 
-            <ui:Card>
+            <!-- hosts -->
+            <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <ui:TextBlock FontTypography="BodyStrong" Text="Hosts entries" />
-                    <ui:TextBlock x:Name="HostsStateText"
-                                  Margin="0,4,0,10"
-                                  Appearance="Secondary"
-                                  TextWrapping="Wrap"
-                                  Text="" />
-
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [diagnostics.hosts], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock x:Name="HostsStateText" Margin="0,4,0,12" Style="{StaticResource TextSecondaryStyle}"
+                               TextWrapping="Wrap" />
                     <StackPanel Orientation="Horizontal">
-                        <ui:Button x:Name="ApplyHostsButton" Content="Apply" Click="OnApplyHosts" />
-                        <ui:Button x:Name="RemoveHostsButton" Content="Remove" Margin="8,0,0,0" Click="OnRemoveHosts" />
+                        <Button x:Name="ApplyHostsButton" Style="{StaticResource SecondaryButton}" Click="OnApplyHosts"
+                                Content="{Binding [services.applyHosts], Source={x:Static loc:Loc.Instance}}" />
+                        <Button x:Name="RemoveHostsButton" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"
+                                Click="OnRemoveHosts"
+                                Content="{Binding [services.removeHosts], Source={x:Static loc:Loc.Instance}}" />
                     </StackPanel>
                 </StackPanel>
-            </ui:Card>
+            </Border>
 
         </StackPanel>
     </ScrollViewer>

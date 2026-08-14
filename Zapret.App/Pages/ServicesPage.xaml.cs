@@ -59,9 +59,8 @@ public partial class ServicesPage : Page
                     _ => 0,
                 };
 
-                HostsStateText.Text = status.ManagedHostsApplied
-                    ? "Applied. Only the block between the ZapretByGrubeer markers is managed; everything else in the hosts file is left alone."
-                    : "Not applied. Applying writes a managed block into the hosts file after backing it up.";
+                HostsStateText.Text = Localization.Loc.Instance[
+                    status.ManagedHostsApplied ? "services.hostsApplied" : "services.hostsNotApplied"];
             }
 
             var capabilities = status?.Capabilities ?? UpstreamCapabilities.None;
@@ -144,11 +143,13 @@ public partial class ServicesPage : Page
 
     private void Report(OperationOutcome outcome, string title)
     {
+        var loc = Localization.Loc.Instance;
+
         var message = outcome.Success
-            ? outcome.Message ?? "Done."
+            ? outcome.Message ?? loc["services.done"]
             : outcome.NeedsElevation
-                ? "This action requires administrator rights."
-                : outcome.Message ?? "The operation failed.";
+                ? loc["common.readOnly"]
+                : outcome.Message ?? loc["updates.failed"];
 
         MainWindow.ShowMessage(title, message, outcome.Success ? ControlAppearance.Success : ControlAppearance.Caution);
         Render();

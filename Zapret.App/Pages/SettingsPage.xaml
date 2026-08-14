@@ -1,74 +1,84 @@
 <Page x:Class="Zapret.App.Pages.SettingsPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:loc="clr-namespace:Zapret.App.Localization"
-      Title="Settings">
+      Background="Transparent"
+      FontFamily="{StaticResource AppFontText}">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="{StaticResource PageMargin}">
+        <StackPanel Margin="{StaticResource PagePadding}" MaxWidth="900" HorizontalAlignment="Left">
 
-            <ui:TextBlock FontTypography="Subtitle" Text="Settings" Margin="0,0,0,12" />
+            <TextBlock Style="{StaticResource SectionTitle}" Margin="0,0,0,14"
+                       Text="{Binding [nav.settings], Source={x:Static loc:Loc.Instance}}" />
 
-            <ui:Card Margin="{StaticResource CardMargin}">
+            <!-- language -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
                 <StackPanel>
-                    <ui:TextBlock FontTypography="BodyStrong"
-                                  Text="{Binding [common.language], Source={x:Static loc:Loc.Instance}}" />
-                    <ui:TextBlock Margin="0,4,0,10" Appearance="Secondary" TextWrapping="Wrap"
-                                  Text="{Binding [settings.languageHint], Source={x:Static loc:Loc.Instance}}" />
-                    <ComboBox x:Name="LanguageCombo" Width="240" HorizontalAlignment="Left"
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [common.language], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Margin="0,4,0,10" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [settings.languageHint], Source={x:Static loc:Loc.Instance}}" />
+                    <ComboBox x:Name="LanguageCombo" Width="260" HorizontalAlignment="Left"
                               DisplayMemberPath="NativeName" SelectionChanged="OnLanguageChanged" />
                 </StackPanel>
-            </ui:Card>
+            </Border>
 
-            <ui:Card Margin="{StaticResource CardMargin}">
+            <!-- appearance -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
                 <StackPanel>
-                    <ui:TextBlock FontTypography="BodyStrong" Text="Appearance" />
-                    <ui:TextBlock Margin="0,4,0,10" Appearance="Secondary" Text="Follows Windows unless you choose otherwise." />
-                    <ComboBox x:Name="ThemeCombo" Width="240" HorizontalAlignment="Left" SelectionChanged="OnThemeChanged">
-                        <ComboBoxItem Content="Use system setting" Tag="" />
-                        <ComboBoxItem Content="Light" Tag="light" />
-                        <ComboBoxItem Content="Dark" Tag="dark" />
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [settings.appearance], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Margin="0,4,0,10" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [settings.appearanceHint], Source={x:Static loc:Loc.Instance}}" />
+                    <ComboBox x:Name="ThemeCombo" Width="260" HorizontalAlignment="Left" SelectionChanged="OnThemeChanged">
+                        <ComboBoxItem Tag="" Content="{Binding [settings.themeSystem], Source={x:Static loc:Loc.Instance}}" />
+                        <ComboBoxItem Tag="light" Content="{Binding [settings.themeLight], Source={x:Static loc:Loc.Instance}}" />
+                        <ComboBoxItem Tag="dark" Content="{Binding [settings.themeDark], Source={x:Static loc:Loc.Instance}}" />
                     </ComboBox>
                 </StackPanel>
-            </ui:Card>
+            </Border>
 
-            <ui:Card Margin="{StaticResource CardMargin}">
+            <!-- notifications -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
                 <StackPanel>
-                    <ui:TextBlock FontTypography="BodyStrong" Text="Notifications" />
-                    <ui:TextBlock Margin="0,4,0,10"
-                                  Appearance="Secondary"
-                                  TextWrapping="Wrap"
-                                  Text="Windows notifications for engine updates, an engine that stopped unexpectedly, and finished strategy tests." />
-                    <CheckBox x:Name="NotificationsBox" Content="Show notifications" Click="OnNotificationsChanged" />
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [settings.notifications], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Margin="0,4,0,10" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [settings.notificationsHint], Source={x:Static loc:Loc.Instance}}" />
+                    <CheckBox x:Name="NotificationsBox" Click="OnNotificationsChanged"
+                              Content="{Binding [settings.showNotifications], Source={x:Static loc:Loc.Instance}}" />
                 </StackPanel>
-            </ui:Card>
+            </Border>
 
-            <ui:Card Margin="{StaticResource CardMargin}">
+            <!-- locations -->
+            <Border Style="{StaticResource Card}" Margin="{StaticResource GapBottom}">
                 <StackPanel>
-                    <ui:TextBlock FontTypography="BodyStrong" Text="Locations" />
-                    <ui:TextBlock Margin="0,4,0,10"
-                                  Appearance="Secondary"
-                                  TextWrapping="Wrap"
-                                  Text="The application can be installed on any drive. The engine always lives in an ASCII path outside Program Files, because upstream's cygwin-based winws.exe and its scripts are unreliable with Cyrillic or special characters." />
-                    <ui:TextBlock x:Name="PathsText" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" Text="" />
-                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <ui:Button Content="Open engine folder" Click="OnOpenRuntime" />
-                        <ui:Button Content="Open data folder" Margin="8,0,0,0" Click="OnOpenData" />
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [settings.locations], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Margin="0,4,0,10" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [settings.locationsHint], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock x:Name="PathsText" Style="{StaticResource TextSecondaryStyle}"
+                               FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Click="OnOpenRuntime"
+                                Content="{Binding [settings.openEngine], Source={x:Static loc:Loc.Instance}}" />
+                        <Button Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="OnOpenData"
+                                Content="{Binding [settings.openData], Source={x:Static loc:Loc.Instance}}" />
                     </StackPanel>
                 </StackPanel>
-            </ui:Card>
+            </Border>
 
-            <ui:Card>
+            <!-- repositories -->
+            <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <ui:TextBlock FontTypography="BodyStrong" Text="Repositories" />
-                    <ui:TextBlock Margin="0,4,0,10"
-                                  Appearance="Secondary"
-                                  TextWrapping="Wrap"
-                                  Text="Where updates come from. The manager and the engine are tracked independently." />
-                    <ui:TextBlock x:Name="RepositoriesText" FontFamily="Consolas" FontSize="12" Text="" />
+                    <TextBlock Style="{StaticResource CardTitle}"
+                               Text="{Binding [settings.repositories], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock Margin="0,4,0,10" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                               Text="{Binding [settings.repositoriesHint], Source={x:Static loc:Loc.Instance}}" />
+                    <TextBlock x:Name="RepositoriesText" Style="{StaticResource TextSecondaryStyle}"
+                               FontFamily="Consolas" FontSize="12" />
                 </StackPanel>
-            </ui:Card>
+            </Border>
 
         </StackPanel>
     </ScrollViewer>
