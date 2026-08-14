@@ -101,6 +101,10 @@ internal static class Translations
         ["testing.title"] = "Тестирование стратегий",
         ["testing.empty"] = "Стратегии ещё не тестировались. Запустите быстрый тест.",
         ["testing.hint"] = "Стратегии обнаруживаются в установленной сборке движка автоматически",
+        ["testing.stale"] = "Результаты получены на другой версии движка или в другой сети — прогоните тест заново.",
+        ["testing.warning"] = "Полный тест занимает несколько минут и на это время останавливает обход.",
+        ["testing.rank"] = "№",
+        ["testing.useBest"] = "Применить лучшую",
 
         // events
         ["events.title"] = "Последние события",
@@ -237,6 +241,10 @@ internal static class Translations
         ["testing.title"] = "Strategy testing",
         ["testing.empty"] = "No strategy has been tested yet. Run a quick test.",
         ["testing.hint"] = "Strategies are discovered from the installed engine build automatically",
+        ["testing.stale"] = "Measured on a different engine version or network — run the test again.",
+        ["testing.warning"] = "The full test takes several minutes and stops the bypass while it runs.",
+        ["testing.rank"] = "#",
+        ["testing.useBest"] = "Apply the best",
 
         ["events.title"] = "Recent events",
         ["events.empty"] = "No events yet",

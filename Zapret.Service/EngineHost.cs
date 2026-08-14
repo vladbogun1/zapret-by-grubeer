@@ -6,6 +6,7 @@ using Zapret.Core.GitHub;
 using Zapret.Core.Ipc;
 using Zapret.Core.Model;
 using Zapret.Core.SystemIntegration;
+using Zapret.Core.Testing;
 
 namespace Zapret.Service;
 
@@ -25,6 +26,8 @@ public sealed class EngineHost(
     HostsManager hosts,
     TcpTimestamps timestamps,
     HttpTargetProbe targetProbe,
+    StrategySweepRunner sweepRunner,
+    ITestResultsStore testResults,
     ManagerEventLog events,
     HttpClient http,
     ILoggerFactory loggerFactory,
@@ -114,9 +117,14 @@ public sealed class EngineHost(
             : runtime.Report.Checks.Where(c => !c.Passed).Select(c => $"{c.Name}: {c.Detail}").ToArray();
 
         var strategyId = controller.State.StrategyId ?? engineState.Read().StrategyId;
+        var network = NetworkIdentity.Detect();
 
         return new StatusPayload
         {
+            NetworkKindKey = network.KindKey,
+            NetworkId = network.Id,
+            NetworkAdapter = network.AdapterName,
+            NetworkStrategyId = current.NetworkStrategies.TryGetValue(network.Id, out var remembered) ? remembered : null,
             EngineStatus = controller.State.Status,
             EngineVersion = runtime?.Version.Raw,
             EngineVersionSource = runtime?.Version.Source.ToString(),
@@ -187,6 +195,13 @@ public sealed class EngineHost(
             engineState.Write(engineState.Read() with { StrategyId = strategy.Id });
             events.Add(ManagerEventLevel.Success, ManagerEvents.StrategyApplied, strategy.DisplayName);
 
+            // Remember the choice for this connection, so switching networks does not mean re-picking.
+            var network = NetworkIdentity.Detect();
+            if (network.Kind != NetworkKind.Unknown)
+            {
+                settings.Update(s => s.NetworkStrategies[network.Id] = strategy.Id);
+            }
+
             return new OperationResultPayload(true, $"{strategy.DisplayName} is running.");
         }
         finally
@@ -222,6 +237,108 @@ public sealed class EngineHost(
             ManagerEvents.ServicesProbed, failed == 0 ? null : failed.ToString());
 
         return payload;
+    }
+
+    /// <summary>
+    /// The full sweep. Our engine is stopped first because the test utility starts configs itself and
+    /// WinDivert allows only one capture; the previous strategy is restored afterwards either way.
+    /// </summary>
+    public async Task<TestResultsPayload> RunFullTestAsync(CancellationToken cancellationToken)
+    {
+        var runtime = Runtime;
+        if (runtime is null) return new TestResultsPayload();
+
+        if (!runtime.Capabilities.SupportsStrategyTests)
+        {
+            events.Add(ManagerEventLevel.Warning, ManagerEvents.StrategyUnavailable, UpstreamLayout.TestScriptName);
+            return new TestResultsPayload();
+        }
+
+        var previousStrategy = engineState.Read().StrategyId;
+        var wasRunning = ActiveController.State.Status == EngineStatus.Running;
+
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await ActiveController.StopAsync(cancellationToken).ConfigureAwait(false);
+
+            var outcome = await sweepRunner.RunAsync(runtime, progress: null, cancellationToken).ConfigureAwait(false);
+
+            if (outcome.Results.Count > 0)
+            {
+                var session = new TestSession
+                {
+                    CompletedUtc = DateTimeOffset.UtcNow,
+                    EngineVersion = runtime.Version.Raw,
+                    NetworkId = NetworkIdentity.Detect().Id,
+                    Results = outcome.Results,
+                };
+
+                testResults.Write(session);
+                events.Add(ManagerEventLevel.Success, ManagerEvents.TestsCompleted);
+            }
+            else
+            {
+                events.Add(ManagerEventLevel.Warning, ManagerEvents.TestsCompleted, outcome.Error);
+            }
+
+            return GetTestResults();
+        }
+        finally
+        {
+            _gate.Release();
+
+            // The sweep leaves nothing running; put the user's own choice back.
+            if (wasRunning && previousStrategy is not null)
+            {
+                await StartAsync(previousStrategy, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    /// <summary>Applies the strategy the last sweep ranked first, never a silently different one.</summary>
+    public async Task<OperationResultPayload> ApplyBestStrategyAsync(CancellationToken cancellationToken)
+    {
+        var session = testResults.Read();
+        var best = session?.Best();
+
+        if (best is null)
+        {
+            return new OperationResultPayload(false, "No strategy has passed a test yet. Run the full test first.");
+        }
+
+        return await StartAsync(best.StrategyId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public TestResultsPayload GetTestResults()
+    {
+        var session = testResults.Read();
+        if (session is null) return new TestResultsPayload();
+
+        var ranked = session.Ranked();
+        var best = session.Best();
+        var runtime = Runtime;
+        var network = NetworkIdentity.Detect();
+
+        return new TestResultsPayload
+        {
+            CompletedUtc = session.CompletedUtc,
+            EngineVersion = session.EngineVersion,
+            NetworkId = session.NetworkId,
+
+            // Results measured on another engine build or another connection are shown, but marked stale.
+            IsCurrent = string.Equals(session.EngineVersion, runtime?.Version.Raw, StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(session.NetworkId, network.Id, StringComparison.OrdinalIgnoreCase),
+
+            Items = ranked.Select(r => new StrategyResultItem(
+                r.StrategyId,
+                StrategyBatParser.ToDisplayName(r.StrategyId),
+                r.SuccessPercent,
+                r.AveragePing,
+                r.PassedCount,
+                r.TotalCount,
+                best is not null && r.StrategyId == best.StrategyId)).ToList(),
+        };
     }
 
     public EventsPayload GetEvents(int count) => new()

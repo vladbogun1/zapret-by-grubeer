@@ -35,6 +35,14 @@ public static class IpcOperations
     public const string RemoveManagedHosts = "remove-managed-hosts";
     public const string RunStrategyTests = "run-strategy-tests";
 
+    /// <summary>Full sweep of every discovered strategy, driven through upstream's own test utility.</summary>
+    public const string RunFullTest = "run-full-test";
+
+    /// <summary>Applies the strategy the last sweep ranked first.</summary>
+    public const string ApplyBestStrategy = "apply-best-strategy";
+
+    public const string GetTestResults = "get-test-results";
+
     /// <summary>
     /// Operations that change machine state. These require a caller in the local Administrators
     /// group; everything else is readable by any signed-in user.
@@ -43,7 +51,7 @@ public static class IpcOperations
     {
         StartEngine, StopEngine, ApplyStrategy, SetRunMode, SetAutostart, SetGameFilter, SetIpSetMode,
         SaveUserList, InstallEngine, RollBackEngine, UpdateIpSetList,
-        ApplyManagedHosts, RemoveManagedHosts, RunStrategyTests,
+        ApplyManagedHosts, RemoveManagedHosts, RunStrategyTests, RunFullTest, ApplyBestStrategy,
     };
 
     public static bool RequiresAdministrator(string operation) => Mutating.Contains(operation);
@@ -107,6 +115,37 @@ public sealed record StatusPayload
     public bool ManagedHostsApplied { get; init; }
     public int SupportedStrategyCount { get; init; }
     public bool IsElevatedCaller { get; init; }
+
+    /// <summary>Localisation key for the connection kind. The service never sends display text.</summary>
+    public string? NetworkKindKey { get; init; }
+
+    /// <summary>One-way fingerprint of the current connection, used to remember a strategy per network.</summary>
+    public string? NetworkId { get; init; }
+
+    public string? NetworkAdapter { get; init; }
+
+    /// <summary>Strategy remembered for this connection, if any.</summary>
+    public string? NetworkStrategyId { get; init; }
+}
+
+public sealed record StrategyResultItem(
+    string StrategyId,
+    string DisplayName,
+    int SuccessPercent,
+    int? AveragePing,
+    int Passed,
+    int Total,
+    bool IsBest);
+
+public sealed record TestResultsPayload
+{
+    public DateTimeOffset? CompletedUtc { get; init; }
+    public string? EngineVersion { get; init; }
+    public string? NetworkId { get; init; }
+    public IReadOnlyList<StrategyResultItem> Items { get; init; } = Array.Empty<StrategyResultItem>();
+
+    /// <summary>True when the stored sweep was measured on the engine and network in use right now.</summary>
+    public bool IsCurrent { get; init; }
 }
 
 public sealed record StrategyPayload

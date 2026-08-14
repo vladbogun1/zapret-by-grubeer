@@ -49,6 +49,16 @@ public sealed class ManagerClient
     public Task<ServiceProbePayload?> ProbeServicesAsync(CancellationToken cancellationToken = default) =>
         _pipe.QueryAsync<ServiceProbePayload>(IpcOperations.ProbeServices, null, TimeSpan.FromSeconds(45), cancellationToken);
 
+    public Task<TestResultsPayload?> GetTestResultsAsync(CancellationToken cancellationToken = default) =>
+        _pipe.QueryAsync<TestResultsPayload>(IpcOperations.GetTestResults, null, null, cancellationToken);
+
+    /// <summary>A full sweep takes minutes: the timeout matches the service's own ceiling.</summary>
+    public Task<TestResultsPayload?> RunFullTestAsync(CancellationToken cancellationToken = default) =>
+        _pipe.QueryAsync<TestResultsPayload>(IpcOperations.RunFullTest, null, TimeSpan.FromMinutes(50), cancellationToken);
+
+    public Task<OperationOutcome> ApplyBestStrategyAsync(CancellationToken ct = default) =>
+        InvokeAsync(IpcOperations.ApplyBestStrategy, null, ct, TimeSpan.FromMinutes(2));
+
     public Task<EventsPayload?> GetEventsAsync(CancellationToken cancellationToken = default) =>
         _pipe.QueryAsync<EventsPayload>(IpcOperations.GetEvents, null, null, cancellationToken);
 

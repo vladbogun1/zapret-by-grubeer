@@ -8,6 +8,8 @@ using System.Windows.Threading;
 // types. Explicit aliases keep every colour in this view model unambiguously WPF.
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
+using SolidColorBrush = System.Windows.Media.SolidColorBrush;
 using Zapret.App.Localization;
 using Zapret.Core;
 using Zapret.Core.Engine;
@@ -104,6 +106,35 @@ public sealed class ServiceRowViewModel(string name) : ObservableObject
     };
 }
 
+/// <summary>
+/// One ranked strategy from the last sweep. The bar length is the success ratio, and the colour separates
+/// the winner from the merely usable and from what failed — so the ranking reads without counting numbers.
+/// </summary>
+public sealed class StrategyResultRowViewModel(int rank, StrategyResultItem item)
+{
+    public int Rank { get; } = rank;
+
+    public string StrategyId { get; } = item.StrategyId;
+
+    public string DisplayName { get; } = item.DisplayName;
+
+    public string SuccessText { get; } = $"{item.SuccessPercent}%";
+
+    public double SuccessRatio { get; } = item.SuccessPercent / 100.0;
+
+    public string LatencyText { get; } = item.AveragePing is { } ping ? $"{ping} ms" : "—";
+
+    public string TargetsText { get; } = $"{item.Passed}/{item.Total}";
+
+    public bool IsBest { get; } = item.IsBest;
+
+    public Brush BarBrush { get; } =
+        item.SuccessPercent == 0 ? Brushes.IndianRed
+        : item.IsBest ? Brushes.LimeGreen
+        : item.SuccessPercent >= 50 ? (Brush)new SolidColorBrush(Color.FromRgb(0x1F, 0xC8, 0xA3))
+        : Brushes.Goldenrod;
+}
+
 public sealed class SystemRowViewModel(string label, string value, Brush brush, string glyph)
 {
     public string Label { get; } = label;
@@ -154,6 +185,8 @@ public sealed class DashboardViewModel : ObservableObject
         ToggleCommand = new RelayCommand(ToggleAsync, () => CanModify && HasEngine);
         ProbeCommand = new RelayCommand(ProbeAsync, () => _client.ServiceAvailable);
         RestartServiceCommand = new RelayCommand(RestartEngineAsync, () => CanModify && HasEngine);
+        FullTestCommand = new RelayCommand(RunFullTestAsync, () => CanModify && SupportsTests);
+        PickBestCommand = new RelayCommand(ApplyBestAsync, () => CanModify && HasRankedResults);
 
         _client.Changed += () => System.Windows.Application.Current?.Dispatcher.Invoke(OnStatusChanged);
         Loc.Instance.LanguageChanged += RaiseAllText;
@@ -170,12 +203,14 @@ public sealed class DashboardViewModel : ObservableObject
 
     public ObservableCollection<EventRowViewModel> Events { get; } = new();
 
-    /// <summary>Ranked strategy results. Empty until a test has actually run.</summary>
-    public ObservableCollection<object> StrategyResults { get; } = new();
+    /// <summary>Ranked strategy results. Empty until a sweep has actually run.</summary>
+    public ObservableCollection<StrategyResultRowViewModel> StrategyResults { get; } = new();
 
     public RelayCommand ToggleCommand { get; }
     public RelayCommand ProbeCommand { get; }
     public RelayCommand RestartServiceCommand { get; }
+    public RelayCommand FullTestCommand { get; }
+    public RelayCommand PickBestCommand { get; }
 
     public bool IsRunning => _status?.EngineStatus == EngineStatus.Running;
 
@@ -214,11 +249,34 @@ public sealed class DashboardViewModel : ObservableObject
 
     public string StrategyName => _status?.StrategyDisplayName ?? Loc.Instance["common.none"];
 
-    /// <summary>
-    /// Reported by the network subsystem when there is one. There is no profile detection yet, so this is
-    /// honest about it instead of showing a plausible-looking placeholder.
-    /// </summary>
-    public string NetworkProfile => Loc.Instance["common.noData"];
+    /// <summary>Connection kind detected by the service, localised here; the service sends only a key.</summary>
+    public string NetworkProfile => _status?.NetworkKindKey is { } key ? Loc.Instance[key] : Loc.Instance["common.noData"];
+
+    public bool SupportsTests => _status?.Capabilities.SupportsStrategyTests == true;
+
+    public bool HasRankedResults => StrategyResults.Count > 0 && StrategyResults.Any(r => r.SuccessRatio > 0);
+
+    /// <summary>Set while a sweep is running, so the button reads as work in progress rather than as idle.</summary>
+    public string FullTestText => IsSweeping ? Loc.Instance["hero.testing"] : Loc.Instance["quick.fullTest"];
+
+    public string PickBestText => IsSweeping ? Loc.Instance["hero.picking"] : Loc.Instance["hero.pickBest"];
+
+    private bool _sweeping;
+
+    public bool IsSweeping
+    {
+        get => _sweeping;
+        private set
+        {
+            if (!Set(ref _sweeping, value)) return;
+
+            Raise(nameof(FullTestText));
+            Raise(nameof(PickBestText));
+        }
+    }
+
+    /// <summary>Stale results are still shown, but labelled: they were measured elsewhere.</summary>
+    public string? TestResultsNote { get; private set; }
 
     public string Uptime
     {
@@ -307,6 +365,72 @@ public sealed class DashboardViewModel : ObservableObject
     {
         await _client.RefreshAsync().ConfigureAwait(true);
         await LoadEventsAsync().ConfigureAwait(true);
+        await LoadTestResultsAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Runs upstream's own sweep of every discovered strategy. It takes minutes and stops the engine while it
+    /// works, so the UI says so and stays responsive throughout.
+    /// </summary>
+    private async Task RunFullTestAsync()
+    {
+        IsSweeping = true;
+        IsBusy = true;
+        BusyText = Loc.Instance["statusbar.testing"];
+
+        try
+        {
+            var results = await _client.RunFullTestAsync().ConfigureAwait(true);
+            ApplyTestResults(results);
+
+            await _client.RefreshAsync().ConfigureAwait(true);
+            await LoadEventsAsync().ConfigureAwait(true);
+        }
+        finally
+        {
+            IsSweeping = false;
+            IsBusy = false;
+            BusyText = null;
+            PickBestCommand.Refresh();
+        }
+    }
+
+    private async Task ApplyBestAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            await _client.ApplyBestStrategyAsync().ConfigureAwait(true);
+            await LoadEventsAsync().ConfigureAwait(true);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task LoadTestResultsAsync() =>
+        ApplyTestResults(await _client.GetTestResultsAsync().ConfigureAwait(true));
+
+    private void ApplyTestResults(TestResultsPayload? payload)
+    {
+        StrategyResults.Clear();
+        TestResultsNote = null;
+
+        if (payload is not null)
+        {
+            var rank = 1;
+            foreach (var item in payload.Items) StrategyResults.Add(new StrategyResultRowViewModel(rank++, item));
+
+            if (payload.Items.Count > 0 && !payload.IsCurrent)
+            {
+                TestResultsNote = Loc.Instance["testing.stale"];
+            }
+        }
+
+        Raise(nameof(HasRankedResults));
+        Raise(nameof(TestResultsNote));
+        PickBestCommand.Refresh();
     }
 
     private void OnStatusChanged()
@@ -317,6 +441,8 @@ public sealed class DashboardViewModel : ObservableObject
         ToggleCommand.Refresh();
         ProbeCommand.Refresh();
         RestartServiceCommand.Refresh();
+        FullTestCommand.Refresh();
+        PickBestCommand.Refresh();
     }
 
     private async Task ToggleAsync()
@@ -459,6 +585,7 @@ public sealed class DashboardViewModel : ObservableObject
                      nameof(HasTestData), nameof(SuccessRateText), nameof(SuccessRatio), nameof(TestSuccessText),
                      nameof(AverageResponseText), nameof(PacketLossText), nameof(LastTestText), nameof(StrategyBadge),
                      nameof(ServicesSummary), nameof(ServicesSummaryBrush), nameof(StatusBarText), nameof(StatusBarBrush),
+                     nameof(SupportsTests), nameof(HasRankedResults), nameof(FullTestText), nameof(PickBestText),
                  })
         {
             Raise(name);

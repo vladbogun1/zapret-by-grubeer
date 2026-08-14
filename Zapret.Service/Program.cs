@@ -61,6 +61,12 @@ builder.Services.AddSingleton<ITargetProbe>(sp => sp.GetRequiredService<HttpTarg
 // A bounded, in-memory history of what actually happened, surfaced on the dashboard.
 builder.Services.AddSingleton(_ => new ManagerEventLog());
 
+builder.Services.AddSingleton(sp =>
+    new StrategySweepRunner(sp.GetRequiredService<ILogger<StrategySweepRunner>>()));
+
+builder.Services.AddSingleton<Zapret.Core.Testing.ITestResultsStore>(sp =>
+    new Zapret.Core.Testing.TestResultsStore(null, sp.GetRequiredService<ILogger<Zapret.Core.Testing.TestResultsStore>>()));
+
 builder.Services.TryAddSingleton<EngineHost>();
 
 builder.Services.AddHostedService<ZapretPipeServer>();

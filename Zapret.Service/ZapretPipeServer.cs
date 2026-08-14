@@ -184,6 +184,15 @@ public sealed class ZapretPipeServer(EngineHost host, ILogger<ZapretPipeServer> 
             case IpcOperations.GetEvents:
                 return Ok(host.GetEvents(20));
 
+            case IpcOperations.GetTestResults:
+                return Ok(host.GetTestResults());
+
+            case IpcOperations.RunFullTest:
+                return Ok(await host.RunFullTestAsync(cancellationToken).ConfigureAwait(false));
+
+            case IpcOperations.ApplyBestStrategy:
+                return Ok(await host.ApplyBestStrategyAsync(cancellationToken).ConfigureAwait(false));
+
             case IpcOperations.StartEngine:
                 return Ok(await host.StartAsync(null, cancellationToken).ConfigureAwait(false));
 

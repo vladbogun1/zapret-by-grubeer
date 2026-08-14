@@ -5,6 +5,7 @@
 
     <app:RingDashConverter x:Key="RingConverter" />
     <app:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+    <app:NullToVisibilityConverter x:Key="NullToVisibility" />
 
     <!--
         Single source of truth for the visual language. Nothing else in the application defines a colour,

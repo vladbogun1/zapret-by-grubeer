@@ -48,6 +48,13 @@ public sealed record ManagerSettings
 
     public bool? TcpTimestampsValueBeforeManager { get; set; }
 
+    /// <summary>
+    /// Strategy remembered per connection, keyed by the one-way network fingerprint. A home connection and a
+    /// mobile one usually need different strategies, and re-picking one by hand every time is exactly the
+    /// friction this product exists to remove (SPEC.md §20).
+    /// </summary>
+    public Dictionary<string, string> NetworkStrategies { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     public ReleaseFeedState ManagerFeed { get; set; } = new();
     public ReleaseFeedState EngineFeed { get; set; } = new();
 

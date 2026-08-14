@@ -37,6 +37,43 @@
             </Grid>
         </DataTemplate>
 
+        <!-- one ranked strategy: bar length is the success ratio, colour separates winner from the rest -->
+        <DataTemplate x:Key="StrategyResultRow">
+            <Grid Margin="0,5,0,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="*" MinWidth="120" />
+                    <ColumnDefinition Width="56" />
+                    <ColumnDefinition Width="72" />
+                    <ColumnDefinition Width="56" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Style="{StaticResource TextSecondaryStyle}" Text="{Binding Rank}" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource TextBase}" FontWeight="SemiBold" Text="{Binding DisplayName}" />
+                    <TextBlock Margin="6,0,0,0" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center"
+                               Foreground="{StaticResource SuccessGreen}" Text="&#xE73E;"
+                               Visibility="{Binding IsBest, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+
+                <!-- A ProgressBar, not two nested Borders: it scales with the column and reports its value
+                     to accessibility tools, so the ranking is not conveyed by bar length alone. -->
+                <ProgressBar Grid.Column="2" Height="8" Margin="0,0,12,0" VerticalAlignment="Center"
+                             Minimum="0" Maximum="1" Value="{Binding SuccessRatio, Mode=OneWay}"
+                             Background="#18FFFFFF" BorderThickness="0" Foreground="{Binding BarBrush}"
+                             ToolTip="{Binding SuccessText}" />
+
+                <TextBlock Grid.Column="3" Style="{StaticResource TextBase}" Text="{Binding SuccessText}"
+                           HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="4" Style="{StaticResource TextSecondaryStyle}" Text="{Binding LatencyText}"
+                           HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="5" Style="{StaticResource TextSecondaryStyle}" Text="{Binding TargetsText}"
+                           HorizontalAlignment="Right" ToolTip="{Binding TargetsText}" />
+            </Grid>
+        </DataTemplate>
+
         <DataTemplate x:Key="EventRow">
             <Grid Margin="0,6,0,6">
                 <Grid.ColumnDefinitions>
@@ -143,9 +180,10 @@
                         <Button Style="{StaticResource SecondaryButton}" Command="{Binding ProbeCommand}"
                                 Content="{Binding [hero.testConnection], Source={x:Static loc:Loc.Instance}}"
                                 Margin="0,0,10,8" />
-                        <Button Style="{StaticResource SecondaryButton}" IsEnabled="False"
-                                Content="{Binding [hero.pickBest], Source={x:Static loc:Loc.Instance}}"
-                                ToolTip="{Binding [testing.empty], Source={x:Static loc:Loc.Instance}}" Margin="0,0,0,8" />
+                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding FullTestCommand}"
+                                Content="{Binding PickBestText}"
+                                ToolTip="{Binding [testing.warning], Source={x:Static loc:Loc.Instance}}"
+                                Margin="0,0,0,8" />
                     </WrapPanel>
                 </StackPanel>
             </Grid>
@@ -258,8 +296,9 @@
                                            Text="{Binding [quick.quickTest], Source={x:Static loc:Loc.Instance}}" />
                             </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource SecondaryButton}" Height="78" Margin="7,0,0,7" IsEnabled="False"
-                                ToolTip="{Binding [testing.empty], Source={x:Static loc:Loc.Instance}}">
+                        <Button Style="{StaticResource SecondaryButton}" Height="78" Margin="7,0,0,7"
+                                Command="{Binding FullTestCommand}"
+                                ToolTip="{Binding [testing.warning], Source={x:Static loc:Loc.Instance}}">
                             <StackPanel>
                                 <TextBlock HorizontalAlignment="Center" FontFamily="Segoe MDL2 Assets" FontSize="18"
                                            Foreground="{StaticResource AccentCyan}" Text="&#xE9D5;" />
@@ -303,7 +342,21 @@
                                ToolTip="{Binding [testing.hint], Source={x:Static loc:Loc.Instance}}" />
                 </StackPanel>
 
-                <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding StrategyResults}" />
+                <TextBlock Margin="0,6,0,0" Style="{StaticResource TextSecondaryStyle}" TextWrapping="Wrap"
+                           Foreground="{StaticResource WarningBrush}" Text="{Binding TestResultsNote}"
+                           Visibility="{Binding TestResultsNote, Converter={StaticResource NullToVisibility}}" />
+
+                <ItemsControl Margin="0,12,0,0" ItemsSource="{Binding StrategyResults}"
+                              ItemTemplate="{StaticResource StrategyResultRow}" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <Button Style="{StaticResource SecondaryButton}" Height="32" Command="{Binding FullTestCommand}"
+                            Content="{Binding FullTestText}"
+                            ToolTip="{Binding [testing.warning], Source={x:Static loc:Loc.Instance}}" />
+                    <Button Style="{StaticResource PrimaryButton}" Height="32" Margin="8,0,0,0"
+                            Command="{Binding PickBestCommand}"
+                            Content="{Binding [testing.useBest], Source={x:Static loc:Loc.Instance}}" />
+                </StackPanel>
 
                 <TextBlock Margin="0,10,0,4" TextWrapping="Wrap"
                            Text="{Binding [testing.empty], Source={x:Static loc:Loc.Instance}}">
