@@ -69,6 +69,20 @@ public sealed record ManagerSettings
     public Dictionary<string, string> ServiceStrategies { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Whether a bypass turned out to be needed on a given connection. Stored alongside the strategy memory so
+    /// the conclusion survives a service restart: without it the product falls back to the vaguer «everything
+    /// works» when it already knows the more precise «no bypass needed».
+    /// </summary>
+    public Dictionary<string, bool> NetworkBypassNeeded { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Unlocks the expanded surface: manual strategy choice, the full sweep, the service editor, engine
+    /// settings and diagnostics. Off by default — the point is that a normal user never needs it, not that a
+    /// capable one cannot have it.
+    /// </summary>
+    public bool AdvancedMode { get; set; }
+
+    /// <summary>
     /// True once the user has been through onboarding. Absent means FirstRun, which is the only stage that
     /// asks anything up front.
     /// </summary>

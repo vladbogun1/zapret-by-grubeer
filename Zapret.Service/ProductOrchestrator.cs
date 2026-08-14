@@ -54,6 +54,11 @@ public sealed class ProductOrchestrator(
             : status.EngineStatus == EngineStatus.Running ? ProductStage.Working
             : ProductStage.Off;
 
+        // The conclusion about this connection is remembered, so a restart does not downgrade the precise
+        // «no bypass needed» to the vaguer «everything works».
+        var network = NetworkIdentity.Detect();
+        var bypassNeeded = current.NetworkBypassNeeded.TryGetValue(network.Id, out var known) ? known : (bool?)null;
+
         Publish(_state with
         {
             Stage = stage,
@@ -61,6 +66,7 @@ public sealed class ProductOrchestrator(
             StrategyId = status.StrategyId,
             EngineVersion = status.EngineVersion,
             RunningSinceUtc = status.StartedUtc,
+            BypassNeeded = bypassNeeded,
             Steps = Array.Empty<ProgressStep>(),
             CanCancel = false,
         });
@@ -152,6 +158,11 @@ public sealed class ProductOrchestrator(
             var outcome = await selector.RunAsync(watched, network.Id, progress, _work.Token).ConfigureAwait(false);
 
             _monitor.Reset();
+
+            if (outcome.Success)
+            {
+                settings.Update(s => s.NetworkBypassNeeded[network.Id] = outcome.BypassNeeded);
+            }
 
             var stage = outcome.Success
                 ? outcome.BypassNeeded ? ProductStage.Working : ProductStage.Working

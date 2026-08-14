@@ -178,6 +178,22 @@
                                 <Button x:Name="CheckButton" Style="{StaticResource QuietButton}" Click="OnCheckUpdates"
                                         Content="{Binding [up.check], Source={x:Static local:Text.Current}}" />
                             </StackPanel>
+
+                            <Border Background="{StaticResource Line}" Height="1" Margin="0,16,0,14" />
+
+                            <CheckBox x:Name="NotificationsBox" Click="OnNotificationsChanged"
+                                      Content="{Binding [notify.enabled], Source={x:Static local:Text.Current}}" />
+
+                            <!-- The door to the mechanism. Off by default, and it says plainly who needs it. -->
+                            <CheckBox x:Name="AdvancedBox" Margin="0,12,0,0" Click="OnAdvancedChanged"
+                                      Content="{Binding [adv.toggle], Source={x:Static local:Text.Current}}" />
+                            <TextBlock Style="{StaticResource Muted}" Margin="26,4,0,0" FontSize="12" TextWrapping="Wrap"
+                                       MaxWidth="560" HorizontalAlignment="Left"
+                                       Text="{Binding [adv.toggleHint], Source={x:Static local:Text.Current}}" />
+
+                            <Button x:Name="AdvancedButton" Style="{StaticResource QuietButton}" Margin="0,12,0,0"
+                                    HorizontalAlignment="Left" Visibility="Collapsed" Click="OnOpenAdvanced"
+                                    Content="{Binding [adv.open], Source={x:Static local:Text.Current}}" />
                         </StackPanel>
                     </Border>
                 </StackPanel>

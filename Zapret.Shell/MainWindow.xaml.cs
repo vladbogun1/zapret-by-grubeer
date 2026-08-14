@@ -39,9 +39,53 @@ public partial class MainWindow : Window
 
         Loaded += async (_, _) =>
         {
+            var settings = App.Settings.Read();
+            NotificationsBox.IsChecked = settings.NotificationsEnabled;
+            AdvancedBox.IsChecked = settings.AdvancedMode;
+            AdvancedButton.Visibility = settings.AdvancedMode ? Visibility.Visible : Visibility.Collapsed;
+
             Render(App.Client.State);
             await LoadTilesAsync();
         };
+    }
+
+    // ---- the expanded surface ----------------------------------------------------------------
+
+    private AdvancedWindow? _advanced;
+
+    private void OnAdvancedChanged(object sender, RoutedEventArgs e)
+    {
+        var on = AdvancedBox.IsChecked == true;
+
+        App.Settings.Update(s => s.AdvancedMode = on);
+        AdvancedButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+
+        if (!on) _advanced?.Close();
+    }
+
+    /// <summary>
+    /// A separate window rather than a section of this one: the main screen keeps its promise of four answers and
+    /// one action, and the mechanism gets a place where nothing has to be hidden.
+    /// </summary>
+    public void OnOpenAdvanced(object? sender, RoutedEventArgs? e)
+    {
+        if (_advanced is { IsLoaded: true })
+        {
+            _advanced.Activate();
+            return;
+        }
+
+        _advanced = new AdvancedWindow { Owner = IsVisible ? this : null };
+        _advanced.Closed += (_, _) => _advanced = null;
+        _advanced.Show();
+    }
+
+    private void OnNotificationsChanged(object sender, RoutedEventArgs e)
+    {
+        var on = NotificationsBox.IsChecked == true;
+
+        App.Settings.Update(s => s.NotificationsEnabled = on);
+        App.Notifications.Enabled = on;
     }
 
     // ---- onboarding --------------------------------------------------------------------------

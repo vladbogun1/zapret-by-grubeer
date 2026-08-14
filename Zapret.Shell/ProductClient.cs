@@ -46,6 +46,66 @@ public sealed class ProductClient : IDisposable
         return response is { Ok: true } ? PipeProtocol.FromElement<ServiceCatalogPayload>(response.Payload) : null;
     }
 
+    // ---- the expanded surface ----------------------------------------------------------------
+    // Thin wrappers over operations the service already exposes. They exist only for the advanced window: the
+    // main screen never calls any of them, which is the whole point of the split.
+
+    public Task<StatusPayload?> GetStatusAsync() =>
+        QueryAsync<StatusPayload>(IpcOperations.GetStatus, null, TimeSpan.FromSeconds(15));
+
+    public Task<StrategyListPayload?> GetStrategiesAsync() =>
+        QueryAsync<StrategyListPayload>(IpcOperations.ListStrategies, null, TimeSpan.FromSeconds(20));
+
+    public Task<TestResultsPayload?> GetTestResultsAsync() =>
+        QueryAsync<TestResultsPayload>(IpcOperations.GetTestResults, null, TimeSpan.FromSeconds(20));
+
+    public Task<TestResultsPayload?> RunFullTestAsync() =>
+        QueryAsync<TestResultsPayload>(IpcOperations.RunFullTest, null, TimeSpan.FromMinutes(50));
+
+    public Task<OperationResultPayload?> ApplyStrategyAsync(string id) =>
+        QueryAsync<OperationResultPayload>(IpcOperations.ApplyStrategy, new IdPayload(id), TimeSpan.FromMinutes(2));
+
+    public Task<OperationResultPayload?> SetServiceEnabledAsync(string id, bool enabled) =>
+        QueryAsync<OperationResultPayload>(IpcOperations.SetServiceEnabled, new ServiceTogglePayload(id, enabled), TimeSpan.FromMinutes(2));
+
+    public Task<OperationResultPayload?> AddCustomServiceAsync(string id, IReadOnlyList<string> domains, string? checkUrl) =>
+        QueryAsync<OperationResultPayload>(IpcOperations.AddCustomService, new CustomServicePayload(id, domains, checkUrl), TimeSpan.FromMinutes(2));
+
+    public Task<OperationResultPayload?> RemoveCustomServiceAsync(string id) =>
+        QueryAsync<OperationResultPayload>(IpcOperations.RemoveCustomService, new IdPayload(id), TimeSpan.FromMinutes(2));
+
+    public Task<OperationResultPayload?> SetGameFilterAsync(Zapret.Core.Model.GameFilterMode mode) =>
+        QueryAsync<OperationResultPayload>(IpcOperations.SetGameFilter, new GameFilterPayload(mode), TimeSpan.FromMinutes(2));
+
+    public Task<OperationResultPayload?> SetIpSetModeAsync(Zapret.Core.Model.IpSetMode mode) =>
+        QueryAsync<OperationResultPayload>(IpcOperations.SetIpSetMode, new IpSetPayload(mode), TimeSpan.FromMinutes(2));
+
+    public Task<OperationResultPayload?> UpdateIpSetListAsync() =>
+        QueryAsync<OperationResultPayload>(IpcOperations.UpdateIpSetList, null, TimeSpan.FromMinutes(2));
+
+    public Task<OperationResultPayload?> ApplyHostsAsync() =>
+        QueryAsync<OperationResultPayload>(IpcOperations.ApplyManagedHosts, null, TimeSpan.FromMinutes(2));
+
+    public Task<OperationResultPayload?> RemoveHostsAsync() =>
+        QueryAsync<OperationResultPayload>(IpcOperations.RemoveManagedHosts, null, TimeSpan.FromMinutes(2));
+
+    public async Task<string> GetLogTailAsync(string source, int lines = 300)
+    {
+        var payload = await QueryAsync<LogTailPayload>(IpcOperations.GetLogTail, new LogTailPayload(source, lines), TimeSpan.FromSeconds(30))
+            .ConfigureAwait(false);
+
+        return payload?.Content ?? string.Empty;
+    }
+
+    private async Task<T?> QueryAsync<T>(string operation, object? payload, TimeSpan timeout)
+    {
+        var response = await RequestAsync(operation, payload, timeout).ConfigureAwait(false);
+        return response is { Ok: true } ? PipeProtocol.FromElement<T>(response.Payload) : default;
+    }
+
+    /// <summary>True when the caller may change things; the advanced window disables the rest rather than lying.</summary>
+    public async Task<bool> CanModifyAsync() => (await GetStatusAsync().ConfigureAwait(false))?.IsElevatedCaller ?? false;
+
     private async Task<ProductState?> SendAsync(string operation, object? payload, TimeSpan timeout)
     {
         var response = await RequestAsync(operation, payload, timeout).ConfigureAwait(false);

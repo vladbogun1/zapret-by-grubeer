@@ -74,10 +74,28 @@ public partial class App : System.Windows.Application
         Client.Start();
     }
 
+    /// <summary>
+    /// Decides when the product may interrupt. Exposed so the settings switch can turn it off without the
+    /// notification logic knowing anything about the interface.
+    /// </summary>
+    public static Notifier Notifications { get; private set; } = null!;
+
     private void CreateTray()
     {
         var menu = new WinForms.ContextMenuStrip();
         menu.Items.Add(Text.Current["tray.open"], null, (_, _) => Dispatcher.Invoke(Show));
+
+        var advanced = new WinForms.ToolStripMenuItem(Text.Current["tray.advanced"], null,
+            (_, _) => Dispatcher.Invoke(() =>
+            {
+                Show();
+                _window?.OnOpenAdvanced(null, null);
+            }));
+
+        // Present only for someone who asked for it, exactly like the button in the window.
+        menu.Opening += (_, _) => advanced.Visible = Settings.Read().AdvancedMode;
+        menu.Items.Add(advanced);
+
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add(Text.Current["tray.exit"], null, (_, _) => Dispatcher.Invoke(Shutdown));
 
@@ -90,6 +108,9 @@ public partial class App : System.Windows.Application
         };
 
         _tray.DoubleClick += (_, _) => Dispatcher.Invoke(Show);
+
+        Notifications = new Notifier(_tray) { Enabled = Settings.Read().NotificationsEnabled };
+        Client.StateChanged += Notifications.Observe;
 
         // The tray tooltip is the one place a stage name is worth repeating.
         Client.StateChanged += state =>
