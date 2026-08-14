@@ -20,6 +20,7 @@ public static class IpcOperations
     public const string StopEngine = "stop-engine";
     public const string ApplyStrategy = "apply-strategy";
     public const string SetRunMode = "set-run-mode";
+    public const string SetAutostart = "set-autostart";
     public const string SetGameFilter = "set-game-filter";
     public const string SetIpSetMode = "set-ipset-mode";
     public const string SaveUserList = "save-user-list";
@@ -36,7 +37,7 @@ public static class IpcOperations
     /// </summary>
     public static readonly IReadOnlySet<string> Mutating = new HashSet<string>(StringComparer.Ordinal)
     {
-        StartEngine, StopEngine, ApplyStrategy, SetRunMode, SetGameFilter, SetIpSetMode,
+        StartEngine, StopEngine, ApplyStrategy, SetRunMode, SetAutostart, SetGameFilter, SetIpSetMode,
         SaveUserList, InstallEngine, RollBackEngine, UpdateIpSetList,
         ApplyManagedHosts, RemoveManagedHosts, RunStrategyTests,
     };
@@ -93,6 +94,7 @@ public sealed record StatusPayload
     public DateTimeOffset? StartedUtc { get; init; }
     public string? LastError { get; init; }
     public EngineRunMode RunMode { get; init; }
+    public bool StartEngineWithWindows { get; init; }
     public GameFilterMode GameFilter { get; init; }
     public IpSetMode IpSet { get; init; }
     public UpstreamCapabilities Capabilities { get; init; } = UpstreamCapabilities.None;
@@ -122,6 +124,8 @@ public sealed record StrategyListPayload
 public sealed record IdPayload(string Id);
 
 public sealed record RunModePayload(EngineRunMode Mode);
+
+public sealed record AutostartPayload(bool Enabled);
 
 public sealed record GameFilterPayload(GameFilterMode Mode);
 

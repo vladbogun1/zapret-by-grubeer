@@ -190,6 +190,9 @@ public sealed class ZapretPipeServer(EngineHost host, ILogger<ZapretPipeServer> 
             case IpcOperations.SetRunMode:
                 return Ok(await host.SetRunModeAsync(Require<RunModePayload>(request).Mode, cancellationToken).ConfigureAwait(false));
 
+            case IpcOperations.SetAutostart:
+                return Ok(host.SetAutostart(Require<AutostartPayload>(request).Enabled));
+
             case IpcOperations.SetGameFilter:
                 return Ok(await host.SetGameFilterAsync(Require<GameFilterPayload>(request).Mode, cancellationToken).ConfigureAwait(false));
 

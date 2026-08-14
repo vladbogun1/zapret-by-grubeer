@@ -9,6 +9,7 @@
     <RootNamespace>Zapret.App</RootNamespace>
     <FileDescription>Запрет by Grubeer</FileDescription>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <!-- Tray icon only: System.Windows.Forms.NotifyIcon. No WinForms window is ever shown (ADR-0001). -->
     <UseWindowsForms>true</UseWindowsForms>
 

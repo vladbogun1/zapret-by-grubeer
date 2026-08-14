@@ -20,6 +20,11 @@ public partial class MainWindow : FluentWindow
         {
             [typeof(HomePage)] = () => new HomePage(client),
             [typeof(StrategiesPage)] = () => new StrategiesPage(client),
+            [typeof(ServicesPage)] = () => new ServicesPage(client),
+            [typeof(ListsPage)] = () => new ListsPage(client),
+            [typeof(DiagnosticsPage)] = () => new DiagnosticsPage(client),
+            [typeof(UpdatesPage)] = () => new UpdatesPage(client),
+            [typeof(SettingsPage)] = () => new SettingsPage(),
             [typeof(AboutPage)] = () => new AboutPage(),
         });
 

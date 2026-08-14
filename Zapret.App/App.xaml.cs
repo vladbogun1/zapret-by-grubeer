@@ -1,4 +1,6 @@
 using System.Drawing;
+using System.IO;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Threading;
 using Wpf.Ui;
@@ -27,6 +29,20 @@ public partial class App : System.Windows.Application
     private MainWindow? _window;
 
     public static ManagerClient Client { get; } = new();
+
+    /// <summary>
+    /// UI-scoped settings. The service owns the machine-wide file under %ProgramData%, which a standard
+    /// user cannot write, so the UI keeps its own preferences and release-feed memory per user
+    /// (ADR-0002). Anything machine-wide is changed through the service instead.
+    /// </summary>
+    public static ISettingsStore Settings { get; } =
+        new SettingsStore(Path.Combine(AppPaths.LocalAppData, "manager.json"));
+
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(5) };
+
+    public static Zapret.Core.GitHub.GitHubReleaseClient Releases { get; } = new(Http);
+
+    public static Zapret.Core.Update.ManagerUpdateService ManagerUpdates { get; } = new(Settings, Releases);
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -61,7 +77,7 @@ public partial class App : System.Windows.Application
 
     private void ApplyTheme()
     {
-        var settings = new SettingsStore().Read();
+        var settings = Settings.Read();
 
         var theme = settings.ThemeOverride?.ToLowerInvariant() switch
         {
@@ -111,8 +127,8 @@ public partial class App : System.Windows.Application
 
         _trayIcon = new WinForms.NotifyIcon
         {
-            // TODO: replace with the product icon once installer assets exist.
-            Icon = SystemIcons.Application,
+            // Pulled from the executable itself, so the tray, taskbar and Apps list can never disagree.
+            Icon = LoadProductIcon(),
             Text = AppPaths.DisplayName,
             Visible = true,
             ContextMenuStrip = menu,
@@ -121,6 +137,25 @@ public partial class App : System.Windows.Application
         _trayIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowMainWindow);
 
         Client.Changed += UpdateTrayTooltip;
+    }
+
+    private static Icon LoadProductIcon()
+    {
+        try
+        {
+            var executable = Environment.ProcessPath;
+            if (executable is not null)
+            {
+                var icon = Icon.ExtractAssociatedIcon(executable);
+                if (icon is not null) return icon;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException)
+        {
+            // Fall through to the generic icon rather than starting without a tray presence.
+        }
+
+        return SystemIcons.Application;
     }
 
     private void UpdateTrayTooltip()
@@ -144,7 +179,7 @@ public partial class App : System.Windows.Application
     /// <summary>Shows a native toast, falling back to a tray balloon when no AUMID is registered yet.</summary>
     public void Notify(string title, string message)
     {
-        if (!new SettingsStore().Read().NotificationsEnabled) return;
+        if (!Settings.Read().NotificationsEnabled) return;
 
         try
         {

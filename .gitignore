@@ -29,8 +29,9 @@ coverage*.xml
 packages/
 !packages/build/
 
-## Installer output
+## Installer output and its publish payload (self-contained, ~190 MB — built, never committed)
 installer/Output/
+installer/payload/
 installer/*.exe
 
 ## Engine payloads are never committed: they are downloaded at runtime from upstream releases.

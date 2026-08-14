@@ -6,6 +6,15 @@ using Zapret.Core.GitHub;
 using Zapret.Core.SystemIntegration;
 using Zapret.Service;
 
+// Uninstall support. The privileged binary undoes the privileged changes, so the uninstaller never has
+// to know how any of them were made (SPEC.md §10.1).
+if (args.Contains("--cleanup", StringComparer.OrdinalIgnoreCase))
+{
+    return await Cleanup.RunAsync(
+        removeEngine: args.Contains("--remove-engine", StringComparer.OrdinalIgnoreCase),
+        keepSettings: args.Contains("--keep-settings", StringComparer.OrdinalIgnoreCase));
+}
+
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddWindowsService(options => options.ServiceName = AppPaths.ManagerServiceName);
@@ -54,3 +63,4 @@ builder.Services.AddHostedService<ZapretPipeServer>();
 
 var host = builder.Build();
 await host.RunAsync();
+return 0;

@@ -1,0 +1,54 @@
+<Page x:Class="Zapret.App.Pages.DiagnosticsPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      Title="Diagnostics">
+
+    <Grid Margin="{StaticResource PageMargin}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TextBlock Grid.Row="0" FontTypography="Subtitle" Text="Diagnostics" Margin="0,0,0,12" />
+
+        <ui:Card Grid.Row="1" Margin="{StaticResource CardMargin}">
+            <StackPanel>
+                <ui:TextBlock FontTypography="BodyStrong" Text="Self-check" />
+                <ui:TextBlock x:Name="SelfCheckText"
+                              Margin="0,6,0,10"
+                              Appearance="Secondary"
+                              TextWrapping="Wrap"
+                              FontFamily="Consolas"
+                              Text="" />
+                <StackPanel Orientation="Horizontal">
+                    <ui:Button x:Name="RefreshButton" Content="Refresh" Icon="{ui:SymbolIcon ArrowSync24}" Click="OnRefresh" />
+                    <ui:Button x:Name="TestButton" Content="Run engine tests" Margin="8,0,0,0" Click="OnRunTests" />
+                    <ui:Button x:Name="OpenLogsButton" Content="Open logs folder" Margin="8,0,0,0" Click="OnOpenLogs" />
+                    <ui:ProgressRing x:Name="Busy" IsIndeterminate="True" Width="20" Height="20" Margin="12,0,0,0" Visibility="Collapsed" />
+                </StackPanel>
+            </StackPanel>
+        </ui:Card>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+            <ui:TextBlock VerticalAlignment="Center" Text="Log" Margin="0,0,10,0" />
+            <ComboBox x:Name="LogCombo" Width="200" SelectionChanged="OnLogChanged">
+                <ComboBoxItem Content="Service" Tag="service" />
+                <ComboBoxItem Content="Manager" Tag="manager" />
+                <ComboBoxItem Content="Engine" Tag="engine" />
+            </ComboBox>
+        </StackPanel>
+
+        <TextBox Grid.Row="3"
+                 x:Name="LogView"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 FontFamily="Consolas"
+                 FontSize="12"
+                 TextWrapping="NoWrap"
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto" />
+    </Grid>
+</Page>

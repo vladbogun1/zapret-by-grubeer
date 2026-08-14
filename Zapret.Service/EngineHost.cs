@@ -124,6 +124,7 @@ public sealed class EngineHost(
             StartedUtc = controller.State.StartedUtc,
             LastError = controller.State.LastError,
             RunMode = current.RunMode,
+            StartEngineWithWindows = current.StartEngineWithWindows,
             GameFilter = runtime?.GameFilter.Mode ?? GameFilterMode.Off,
             IpSet = runtime?.IpSet ?? IpSetMode.Any,
             Capabilities = runtime?.Capabilities ?? UpstreamCapabilities.None,
@@ -215,6 +216,19 @@ public sealed class EngineHost(
         return wasRunning
             ? await StartAsync(null, cancellationToken).ConfigureAwait(false)
             : new OperationResultPayload(true);
+    }
+
+    /// <summary>
+    /// Whether the service starts the engine at boot. This is the manager's own autostart, separate from
+    /// the upstream service's <c>start=auto</c>, and is what the uninstaller removes.
+    /// </summary>
+    public OperationResultPayload SetAutostart(bool enabled)
+    {
+        settings.Update(s => s.StartEngineWithWindows = enabled);
+
+        return new OperationResultPayload(true, enabled
+            ? "The engine will start with Windows."
+            : "The engine will no longer start with Windows.");
     }
 
     public async Task<OperationResultPayload> SetGameFilterAsync(GameFilterMode mode, CancellationToken cancellationToken)

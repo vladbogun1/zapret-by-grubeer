@@ -62,6 +62,9 @@ public sealed class ManagerClient
     public Task<OperationOutcome> SetRunModeAsync(EngineRunMode mode, CancellationToken ct = default) =>
         InvokeAsync(IpcOperations.SetRunMode, new RunModePayload(mode), ct, TimeSpan.FromMinutes(2));
 
+    public Task<OperationOutcome> SetAutostartAsync(bool enabled, CancellationToken ct = default) =>
+        InvokeAsync(IpcOperations.SetAutostart, new AutostartPayload(enabled), ct);
+
     public Task<OperationOutcome> SetGameFilterAsync(GameFilterMode mode, CancellationToken ct = default) =>
         InvokeAsync(IpcOperations.SetGameFilter, new GameFilterPayload(mode), ct, TimeSpan.FromMinutes(2));
 
