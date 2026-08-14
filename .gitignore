@@ -1,0 +1,49 @@
+## Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+publish/
+artifacts/
+*.user
+*.suo
+*.userprefs
+
+## Visual Studio / Rider / VS Code
+.vs/
+.idea/
+*.DotSettings.user
+
+## Test and coverage output
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coverclover
+coverage*.xml
+
+## NuGet
+*.nupkg
+*.snupkg
+packages/
+!packages/build/
+
+## Installer output
+installer/Output/
+installer/*.exe
+
+## Engine payloads are never committed: they are downloaded at runtime from upstream releases.
+## Only the small text fixtures under Zapret.Tests/Fixtures are tracked.
+*.zip
+*.rar
+*.tar.gz
+winws.exe
+WinDivert*.dll
+WinDivert*.sys
+cygwin1.dll
+
+## Local scratch
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,32 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <!-- Manager version. Independent of the Flowseal engine version by design. -->
+  <PropertyGroup>
+    <ManagerVersion>1.0.0</ManagerVersion>
+    <Version>$(ManagerVersion)</Version>
+    <AssemblyVersion>$(ManagerVersion).0</AssemblyVersion>
+    <FileVersion>$(ManagerVersion).0</FileVersion>
+    <InformationalVersion>$(ManagerVersion)</InformationalVersion>
+  </PropertyGroup>
+
+  <!-- Windows metadata. Display name is Cyrillic on purpose; file names stay ASCII. -->
+  <PropertyGroup>
+    <Product>Запрет by Grubeer</Product>
+    <Company>Grubeer</Company>
+    <Authors>Grubeer</Authors>
+    <Copyright>Copyright © 2026 Grubeer</Copyright>
+    <NeutralLanguage>en</NeutralLanguage>
+  </PropertyGroup>
+
+</Project>

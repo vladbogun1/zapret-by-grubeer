@@ -1,0 +1,15 @@
+# Normalise text in the repository, check out with Windows line endings.
+* text=auto eol=crlf
+
+# Upstream fixtures are byte-for-byte copies of a Flowseal release and must stay that way,
+# so git must not rewrite their line endings in either direction.
+Zapret.Tests/Fixtures/upstream/** -text
+
+*.sln text eol=crlf
+*.csproj text eol=crlf
+*.props text eol=crlf
+*.xaml text eol=crlf
+*.manifest text eol=crlf
+*.png binary
+*.ico binary
+*.bin binary
