@@ -176,6 +176,7 @@ public partial class MainWindow : Window
         };
 
         RenderSteps(state, busy);
+        RenderMetrics(state, busy);
         RenderServices(state);
         RenderAdvice(state);
         RenderAction(state, busy);
@@ -196,6 +197,41 @@ public partial class MainWindow : Window
             s.Done ? "" : "")).ToList();
 
         Steps.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Facts about the option in use, in the simple mode too. Knowing which one is running, for how long, and
+    /// how it is doing is not an expert need — it is what stops a working product from feeling like a black box.
+    /// The manual-choice button is here for the same reason: taking the wheel should never require a hunt.
+    /// </summary>
+    private void RenderMetrics(ProductState state, bool busy)
+    {
+        var show = !busy && state.Stage is ProductStage.Working or ProductStage.Degraded;
+        MetricsCard.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+
+        if (!show) return;
+
+        MetricOption.Text = state.StrategyId is null
+            ? T["m.none"]
+            : Zapret.Core.Flowseal.StrategyBatParser.ToDisplayName(state.StrategyId);
+
+        MetricUptime.Text = state.RunningSinceUtc is { } since && DateTimeOffset.UtcNow - since is var elapsed && elapsed > TimeSpan.Zero
+            ? elapsed.TotalHours >= 1
+                ? $"{(int)elapsed.TotalHours} ч {elapsed.Minutes} мин"
+                : $"{elapsed.Minutes} мин"
+            : "—";
+
+        // Average across what actually answered; a failing service contributes no latency to flatter it.
+        var latencies = state.Verdicts.Where(v => v is { Reachable: true, Milliseconds: not null })
+            .Select(v => v.Milliseconds!.Value).ToList();
+
+        MetricResponse.Text = latencies.Count == 0 ? "—" : $"{(int)latencies.Average()} ms";
+
+        MetricServices.Text = state.Verdicts.Count == 0
+            ? "—"
+            : $"{state.Verdicts.Count(v => v.Reachable)}/{state.Verdicts.Count}";
+
+        MetricServices.Foreground = (Brush)FindResource(state.AllWorking ? "Ok" : "Warn");
     }
 
     private void RenderServices(ProductState state)

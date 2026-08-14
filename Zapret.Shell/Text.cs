@@ -134,6 +134,14 @@ public sealed class Text : INotifyPropertyChanged
         ["up.offline"] = "Не удалось проверить обновления. Это не мешает работе.",
         ["up.started"] = "Установщик запущен.",
 
+        // live metrics of the option in use
+        ["m.option"] = "Вариант обхода",
+        ["m.uptime"] = "Работает",
+        ["m.response"] = "Отклик",
+        ["m.services"] = "Сервисы",
+        ["m.pick"] = "Выбрать вручную",
+        ["m.none"] = "не нужен",
+
         // notifications — only three things earn an interruption
         ["notify.repaired.title"] = "Доступ восстановлен",
         ["notify.repaired.body"] = "Что-то перестало открываться, приложение подобрало другой вариант. Вмешиваться не нужно.",
@@ -264,6 +272,13 @@ public sealed class Text : INotifyPropertyChanged
         ["up.update"] = "Update",
         ["up.offline"] = "Could not check for updates. This does not affect anything.",
         ["up.started"] = "The installer has been started.",
+
+        ["m.option"] = "Bypass option",
+        ["m.uptime"] = "Running for",
+        ["m.response"] = "Response",
+        ["m.services"] = "Services",
+        ["m.pick"] = "Choose manually",
+        ["m.none"] = "not needed",
 
         ["notify.repaired.title"] = "Access restored",
         ["notify.repaired.body"] = "Something stopped opening and the app found another option. Nothing for you to do.",

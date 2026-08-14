@@ -117,6 +117,40 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
+                <!-- Live facts about the option in use. Shown even in the simple mode: knowing which one is
+                     running and how it is doing is not an expert need, it is basic reassurance. -->
+                <Border x:Name="MetricsCard" Grid.Row="2" Style="{StaticResource CardBorder}" Padding="16,12"
+                        Margin="0,20,0,0" HorizontalAlignment="Left" Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Muted}" FontSize="12"
+                                       Text="{Binding [m.option], Source={x:Static local:Text.Current}}" />
+                            <TextBlock x:Name="MetricOption" FontWeight="SemiBold" Margin="0,3,0,0" />
+                        </StackPanel>
+                        <Border Width="1" Background="{StaticResource Line}" Margin="20,2,20,2" />
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Muted}" FontSize="12"
+                                       Text="{Binding [m.uptime], Source={x:Static local:Text.Current}}" />
+                            <TextBlock x:Name="MetricUptime" FontWeight="SemiBold" Margin="0,3,0,0" />
+                        </StackPanel>
+                        <Border Width="1" Background="{StaticResource Line}" Margin="20,2,20,2" />
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Muted}" FontSize="12"
+                                       Text="{Binding [m.response], Source={x:Static local:Text.Current}}" />
+                            <TextBlock x:Name="MetricResponse" FontWeight="SemiBold" Margin="0,3,0,0" />
+                        </StackPanel>
+                        <Border Width="1" Background="{StaticResource Line}" Margin="20,2,20,2" />
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource Muted}" FontSize="12"
+                                       Text="{Binding [m.services], Source={x:Static local:Text.Current}}" />
+                            <TextBlock x:Name="MetricServices" FontWeight="SemiBold" Margin="0,3,0,0" />
+                        </StackPanel>
+                        <Button x:Name="PickButton" Style="{StaticResource QuietButton}" Margin="24,0,0,0"
+                                VerticalAlignment="Center" Click="OnOpenAdvanced"
+                                Content="{Binding [m.pick], Source={x:Static local:Text.Current}}" />
+                    </StackPanel>
+                </Border>
+
                 <!-- 2. Что именно работает -->
                 <ItemsControl x:Name="Services" Grid.Row="3" Margin="0,26,0,0" VerticalAlignment="Top">
                     <ItemsControl.ItemsPanel>

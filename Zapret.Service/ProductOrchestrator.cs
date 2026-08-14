@@ -65,7 +65,9 @@ public sealed class ProductOrchestrator(
             WatchedServices = current.WatchedServices,
             StrategyId = status.StrategyId,
             EngineVersion = status.EngineVersion,
-            RunningSinceUtc = status.StartedUtc,
+
+            // Only a running engine has an uptime; anything else reporting one is a lie the user can see.
+            RunningSinceUtc = status.EngineStatus == EngineStatus.Running ? status.StartedUtc : null,
             BypassNeeded = bypassNeeded,
             Steps = Array.Empty<ProgressStep>(),
             CanCancel = false,
@@ -112,12 +114,15 @@ public sealed class ProductOrchestrator(
         _monitor.Reset();
         await host.StopAsync(cancellationToken).ConfigureAwait(false);
 
+        // Nothing is running, so nothing may claim an uptime. Leaving this set made the window show
+        // «работает столько-то» next to «защита выключена», which reads as a product that did not obey.
         Publish(_state with
         {
             Stage = ProductStage.Off,
             Steps = Array.Empty<ProgressStep>(),
             CanCancel = false,
             Verdicts = Array.Empty<ServiceVerdict>(),
+            RunningSinceUtc = null,
         });
 
         return _state;
