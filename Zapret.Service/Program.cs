@@ -69,7 +69,29 @@ builder.Services.AddSingleton<Zapret.Core.Testing.ITestResultsStore>(sp =>
 
 builder.Services.TryAddSingleton<EngineHost>();
 
+// 2.0 behaviour: probe only the services the user named, remember what worked, and keep it working.
+builder.Services.AddSingleton<Zapret.Core.AutoSelect.IServiceProbe>(sp =>
+    new Zapret.Core.AutoSelect.HttpServiceProbe(
+        sp.GetRequiredService<HttpClient>(),
+        () =>
+        {
+            var current = sp.GetRequiredService<ISettingsStore>().Read();
+            return
+            [
+                .. Zapret.Core.Services.ServiceCatalog.BuiltIn,
+                .. current.CustomServices.Select(c => new Zapret.Core.Services.ServiceDefinition(
+                    c.Id, Zapret.Core.Services.ServiceCategory.Custom, c.Domains, c.CheckUrl, IsCustom: true)),
+            ];
+        },
+        sp.GetRequiredService<ILogger<Zapret.Core.AutoSelect.HttpServiceProbe>>()));
+
+builder.Services.AddSingleton(sp =>
+    new Zapret.Core.AutoSelect.SelectionMemoryStore(sp.GetRequiredService<ISettingsStore>()));
+
+builder.Services.AddSingleton<ProductOrchestrator>();
+
 builder.Services.AddHostedService<ZapretPipeServer>();
+builder.Services.AddHostedService<ProductMonitorService>();
 
 var host = builder.Build();
 await host.RunAsync();

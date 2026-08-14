@@ -62,6 +62,24 @@ public sealed record ManagerSettings
     /// </summary>
     public List<string> EnabledServices { get; set; } = new();
 
+    /// <summary>
+    /// Strategy that last fixed a given service, across connections. Blocking is usually per service rather
+    /// than per ISP, so this is the second-best guess after what worked on this network.
+    /// </summary>
+    public Dictionary<string, string> ServiceStrategies { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// True once the user has been through onboarding. Absent means FirstRun, which is the only stage that
+    /// asks anything up front.
+    /// </summary>
+    public bool OnboardingCompleted { get; set; }
+
+    /// <summary>The user's own answer to "what do you want unblocked". Drives every probe and every repair.</summary>
+    public List<string> WatchedServices { get; set; } = new();
+
+    /// <summary>Set when the user deliberately turned protection off, so the product does not restart it.</summary>
+    public bool TurnedOffByUser { get; set; }
+
     /// <summary>Services the user defined. Stored here rather than in a list file so they survive engine updates.</summary>
     public List<CustomServiceSetting> CustomServices { get; set; } = new();
 

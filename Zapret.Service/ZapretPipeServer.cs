@@ -3,6 +3,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text.Json;
 using Zapret.Core;
+using Zapret.Core.AutoSelect;
 using Zapret.Core.Engine;
 using Zapret.Core.Ipc;
 using Zapret.Core.Model;
@@ -13,7 +14,7 @@ namespace Zapret.Service;
 /// The named-pipe endpoint. Any signed-in user may query state; changing anything requires a caller in
 /// the local Administrators group, verified by impersonating the client (ADR-0002).
 /// </summary>
-public sealed class ZapretPipeServer(EngineHost host, ILogger<ZapretPipeServer> logger) : BackgroundService
+public sealed class ZapretPipeServer(EngineHost host, ProductOrchestrator product, ILogger<ZapretPipeServer> logger) : BackgroundService
 {
     private const int ConcurrentInstances = 4;
 
@@ -139,6 +140,14 @@ public sealed class ZapretPipeServer(EngineHost host, ILogger<ZapretPipeServer> 
             logger.LogInformation("{Operation} requested by {User} ({Sid})", request.Operation, caller.Name, caller.Sid);
         }
 
+        // A subscription is not a request/response: the connection stays open and carries state as it changes,
+        // which is what lets the interface stop polling (docs/nextgen-ux.md §8).
+        if (request.Operation == IpcOperations.SubscribeState)
+        {
+            await StreamStateAsync(pipe, stoppingToken).ConfigureAwait(false);
+            return;
+        }
+
         IpcResponse response;
         try
         {
@@ -189,6 +198,22 @@ public sealed class ZapretPipeServer(EngineHost host, ILogger<ZapretPipeServer> 
 
             case IpcOperations.GetServiceCatalog:
                 return Ok(host.GetServiceCatalog());
+
+            case IpcOperations.GetProductState:
+                return Ok(product.State);
+
+            case IpcOperations.SetUp:
+                return Ok(await product.SetUpAsync(Require<SetUpPayload>(request).WatchedServices, cancellationToken).ConfigureAwait(false));
+
+            case IpcOperations.TurnOn:
+                return Ok(await product.TurnOnAsync(cancellationToken).ConfigureAwait(false));
+
+            case IpcOperations.TurnOff:
+                return Ok(await product.TurnOffAsync(cancellationToken).ConfigureAwait(false));
+
+            case IpcOperations.CancelWork:
+                product.Cancel();
+                return Ok(product.State);
 
             case IpcOperations.SetServiceEnabled:
             {
@@ -258,6 +283,46 @@ public sealed class ZapretPipeServer(EngineHost host, ILogger<ZapretPipeServer> 
 
             default:
                 return IpcResponse.Failure(IpcErrorCode.UnknownOperation, $"Unknown operation '{request.Operation}'.");
+        }
+    }
+
+    /// <summary>
+    /// Holds the connection open and writes the product state on every change, starting with the current one so
+    /// a fresh subscriber is never briefly blank. Ends when the client disconnects or the service stops.
+    /// </summary>
+    private async Task StreamStateAsync(Stream pipe, CancellationToken stoppingToken)
+    {
+        var updates = System.Threading.Channels.Channel.CreateBounded<ProductState>(
+            new System.Threading.Channels.BoundedChannelOptions(4)
+            {
+                // A slow reader should see the latest state, not a backlog of stale ones.
+                FullMode = System.Threading.Channels.BoundedChannelFullMode.DropOldest,
+            });
+
+        void OnChanged(ProductState state) => updates.Writer.TryWrite(state);
+
+        product.StateChanged += OnChanged;
+
+        try
+        {
+            await PipeProtocol.WriteMessageAsync(pipe, IpcResponse.Success(PipeProtocol.ToElement(product.State)), stoppingToken)
+                .ConfigureAwait(false);
+
+            await foreach (var state in updates.Reader.ReadAllAsync(stoppingToken).ConfigureAwait(false))
+            {
+                await PipeProtocol.WriteMessageAsync(pipe, IpcResponse.Success(PipeProtocol.ToElement(state)), stoppingToken)
+                    .ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException)
+        {
+            // The client closed the window, or the service is stopping. Neither is an error.
+            logger.LogDebug(ex, "State subscription ended");
+        }
+        finally
+        {
+            product.StateChanged -= OnChanged;
+            updates.Writer.TryComplete();
         }
     }
 

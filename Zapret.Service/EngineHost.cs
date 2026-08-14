@@ -32,8 +32,11 @@ public sealed class EngineHost(
     ManagerEventLog events,
     HttpClient http,
     ILoggerFactory loggerFactory,
-    ILogger<EngineHost> logger)
+    ILogger<EngineHost> logger) : Zapret.Core.AutoSelect.IFlowsealAdapterProvider
 {
+    /// <summary>The engine build in use, for anything that needs to reason about strategies.</summary>
+    EngineRuntimeInfo? Zapret.Core.AutoSelect.IFlowsealAdapterProvider.Current => Runtime;
+
     private readonly SemaphoreSlim _gate = new(1, 1);
     private EngineRuntimeInfo? _runtime;
 

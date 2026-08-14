@@ -43,6 +43,17 @@ public static class IpcOperations
 
     public const string GetTestResults = "get-test-results";
     public const string GetServiceCatalog = "get-service-catalog";
+
+    /// <summary>The 2.0 surface: one state, and the few intents that change it.</summary>
+    public const string GetProductState = "get-product-state";
+
+    /// <summary>Streams state changes until the client disconnects, so the interface never polls.</summary>
+    public const string SubscribeState = "subscribe-state";
+
+    public const string SetUp = "set-up";
+    public const string TurnOn = "turn-on";
+    public const string TurnOff = "turn-off";
+    public const string CancelWork = "cancel-work";
     public const string SetServiceEnabled = "set-service-enabled";
     public const string AddCustomService = "add-custom-service";
     public const string RemoveCustomService = "remove-custom-service";
@@ -57,6 +68,7 @@ public static class IpcOperations
         SaveUserList, InstallEngine, RollBackEngine, UpdateIpSetList,
         ApplyManagedHosts, RemoveManagedHosts, RunStrategyTests, RunFullTest, ApplyBestStrategy,
         SetServiceEnabled, AddCustomService, RemoveCustomService,
+        SetUp, TurnOn, TurnOff, CancelWork,
     };
 
     public static bool RequiresAdministrator(string operation) => Mutating.Contains(operation);
@@ -229,6 +241,9 @@ public sealed record ServiceCatalogPayload
 }
 
 public sealed record ServiceTogglePayload(string Id, bool Enabled);
+
+/// <summary>The user's answer to the only question onboarding asks.</summary>
+public sealed record SetUpPayload(IReadOnlyList<string> WatchedServices);
 
 public sealed record CustomServicePayload(string Id, IReadOnlyList<string> Domains, string? CheckUrl);
 
