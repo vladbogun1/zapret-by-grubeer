@@ -11,6 +11,9 @@ namespace Zapret.App.Pages;
 
 public partial class UpdatesPage : Page
 {
+    /// <summary>Shorthand for the translation table; this page reads a lot of strings.</summary>
+    private static Localization.Loc L => Localization.Loc.Instance;
+
     private readonly ManagerClient _client;
     private GitHubRelease? _managerRelease;
     private GitHubRelease? _engineRelease;
@@ -44,7 +47,7 @@ public partial class UpdatesPage : Page
         NotifyEngineBox.IsChecked = settings.NotifyAboutEngineUpdates;
         PreviewBox.IsChecked = settings.AllowPreviewReleases;
 
-        ManagerInstalledText.Text = "Installed " + ManagerUpdateService.InstalledVersion;
+        ManagerInstalledText.Text = ManagerUpdateService.InstalledVersion;
     }
 
     private void OnOptionChanged(object sender, RoutedEventArgs e)
@@ -70,13 +73,13 @@ public partial class UpdatesPage : Page
             var info = await App.ManagerUpdates.CheckAsync(force);
             _managerRelease = info.Release;
 
-            ManagerInstalledText.Text = "Installed " + info.InstalledVersion;
-            ManagerLatestText.Text = "Latest " + (info.LatestVersion ?? "unknown");
+            ManagerInstalledText.Text = info.InstalledVersion;
+            ManagerLatestText.Text = info.LatestVersion ?? L["common.noData"];
 
             if (info.Status == ReleaseCheckStatus.Unavailable)
             {
                 OfflineBanner.Visibility = Visibility.Visible;
-                ManagerStatusText.Text = info.Message ?? "Could not check for updates.";
+                ManagerStatusText.Text = L["updates.offline"];
                 return;
             }
 
@@ -84,16 +87,15 @@ public partial class UpdatesPage : Page
 
             if (info.UpdateAvailable)
             {
-                ManagerStatusText.Text = info.IsCritical
-                    ? $"Version {info.LatestVersion} is available and is marked required for compatibility."
-                    : $"Version {info.LatestVersion} is available.";
+                ManagerStatusText.Text = L.Format(
+                    info.IsCritical ? "updates.availableCritical" : "updates.available", info.LatestVersion);
                 ManagerUpdateButton.Visibility = Visibility.Visible;
                 ManagerLaterButton.Visibility = info.IsCritical ? Visibility.Collapsed : Visibility.Visible;
                 ShowNotes(info.Release?.Body);
             }
             else
             {
-                ManagerStatusText.Text = "✓ Up to date";
+                ManagerStatusText.Text = "✓ " + L["updates.upToDate"];
                 ManagerUpdateButton.Visibility = Visibility.Collapsed;
                 ManagerLaterButton.Visibility = Visibility.Collapsed;
             }
@@ -151,7 +153,7 @@ public partial class UpdatesPage : Page
     private void RenderEngineInstalled()
     {
         var installed = _client.Status?.EngineVersion;
-        EngineInstalledText.Text = "Installed " + (installed ?? "none");
+        EngineInstalledText.Text = installed ?? L["version.unknown"];
         EngineRollbackButton.IsEnabled = _client.CanModify && installed is not null;
     }
 
@@ -177,19 +179,21 @@ public partial class UpdatesPage : Page
 
             _engineRelease = result.Release;
             RenderEngineInstalled();
-            EngineLatestText.Text = "Latest " + (result.Release is null ? "unknown" : EngineVersion.NormalizeTag(result.Release.Tag));
+            EngineLatestText.Text = result.Release is null
+                ? L["common.noData"]
+                : EngineVersion.NormalizeTag(result.Release.Tag);
 
             if (result.Status == ReleaseCheckStatus.Unavailable)
             {
                 OfflineBanner.Visibility = Visibility.Visible;
-                EngineStatusText.Text = result.Message ?? "Could not check for updates.";
+                EngineStatusText.Text = L["updates.offline"];
                 return;
             }
 
             if (installed is null && result.Release is not null)
             {
-                EngineStatusText.Text = "No engine is installed yet. Installing it is the first step.";
-                EngineUpdateButton.Content = "Install engine";
+                EngineStatusText.Text = L["updates.engineMissing"];
+                EngineUpdateButton.Content = L["updates.installEngine"];
                 EngineUpdateButton.Visibility = _client.CanModify ? Visibility.Visible : Visibility.Collapsed;
                 ShowNotes(result.Release.Body);
                 return;
@@ -206,7 +210,7 @@ public partial class UpdatesPage : Page
             }
             else
             {
-                EngineStatusText.Text = "✓ Up to date";
+                EngineStatusText.Text = "✓ " + L["updates.upToDate"];
                 EngineUpdateButton.Visibility = Visibility.Collapsed;
             }
         }
