@@ -18,6 +18,11 @@ public partial class SettingsPage : Page
         var settings = App.Settings.Read();
 
         _rendering = true;
+
+        LanguageCombo.ItemsSource = Localization.Loc.Instance.Languages;
+        LanguageCombo.SelectedItem = Localization.Loc.Instance.Languages
+            .FirstOrDefault(l => l.Tag == Localization.Loc.Instance.CurrentTag);
+
         ThemeCombo.SelectedIndex = settings.ThemeOverride?.ToLowerInvariant() switch
         {
             "light" => 1,
@@ -37,6 +42,16 @@ public partial class SettingsPage : Page
         RepositoriesText.Text = string.Join(Environment.NewLine,
             $"Manager   {settings.ManagerRepository}",
             $"Engine    {settings.EngineRepository}");
+    }
+
+    /// <summary>Applies the language immediately: every bound string re-evaluates, no restart.</summary>
+    private void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_rendering) return;
+        if (LanguageCombo.SelectedItem is not Localization.LanguageOption option) return;
+
+        Localization.Loc.Instance.Apply(option.Tag);
+        App.Settings.Update(s => s.Language = option.Tag);
     }
 
     private void OnThemeChanged(object sender, SelectionChangedEventArgs e)

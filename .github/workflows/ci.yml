@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore ZapretByGrubeer.sln
+
+      - name: Build
+        run: dotnet build ZapretByGrubeer.sln --configuration Release --no-restore
+
+      # The suite runs entirely offline against the checked-in upstream fixtures: no engine binary,
+      # no kernel driver and no administrator rights, which is exactly why it works on a CI runner.
+      - name: Test
+        run: dotnet test Zapret.Tests/Zapret.Tests.csproj --configuration Release --no-build --verbosity normal

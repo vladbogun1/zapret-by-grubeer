@@ -1,0 +1,123 @@
+name: Release
+
+# Publishing is driven by a tag, so the installer users download is always built by CI from a known
+# commit — never from a developer's machine.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, without the leading v (for a dry run without tagging)'
+        required: true
+        default: '0.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # A tag push takes its version from the tag; a manual run takes the input, so the workflow can be
+      # exercised without publishing a real version.
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $version = $env:GITHUB_REF -replace '^refs/tags/v', ''
+            $isTag = 'true'
+          } else {
+            $version = '${{ github.event.inputs.version }}'
+            $isTag = 'false'
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Version '$version' must be three dotted numbers, for example 1.1.0"
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "isTag=$isTag"     >> $env:GITHUB_OUTPUT
+          Write-Host "Building version $version (tag: $isTag)"
+
+      - name: Test
+        run: dotnet test Zapret.Tests/Zapret.Tests.csproj --configuration Release
+
+      # Both projects publish into one folder on purpose: they share the .NET runtime files, so the
+      # installer carries one copy instead of two.
+      - name: Publish payload
+        shell: pwsh
+        run: |
+          $v = '${{ steps.version.outputs.version }}'
+          dotnet publish Zapret.App/Zapret.App.csproj -c Release -r win-x64 --self-contained true `
+            -p:ManagerVersion=$v -o installer/payload
+          dotnet publish Zapret.Service/Zapret.Service.csproj -c Release -r win-x64 --self-contained true `
+            -p:ManagerVersion=$v -o installer/payload
+
+          $size = (Get-ChildItem installer/payload -Recurse -File | Measure-Object -Property Length -Sum).Sum / 1MB
+          Write-Host ("payload: {0:N1} MB" -f $size)
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          $v = '${{ steps.version.outputs.version }}'
+          & "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$v" installer/ZapretByGrubeer.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed with exit code $LASTEXITCODE" }
+
+          $setup = Get-Item "installer/Output/ZapretByGrubeer-$v-setup.exe"
+          $hash = (Get-FileHash $setup.FullName -Algorithm SHA256).Hash
+          "SETUP_PATH=$($setup.FullName)" >> $env:GITHUB_ENV
+          "SETUP_SHA256=$hash"            >> $env:GITHUB_ENV
+          Write-Host ("installer: {0:N1} MB  sha256 {1}" -f ($setup.Length / 1MB), $hash)
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZapretByGrubeer-${{ steps.version.outputs.version }}-setup
+          path: installer/Output/*.exe
+          if-no-files-found: error
+
+      # Release notes are taken from the repository so they are reviewable in a pull request, with the
+      # version and the checksum of this exact build appended.
+      - name: Compose release notes
+        if: steps.version.outputs.isTag == 'true'
+        shell: pwsh
+        run: |
+          $v = '${{ steps.version.outputs.version }}'
+          $notes = "docs/release-notes/$v.md"
+
+          if (Test-Path $notes) {
+            $body = Get-Content $notes -Raw
+          } else {
+            Write-Host "::warning::No docs/release-notes/$v.md found; publishing a minimal body"
+            $body = "Запрет by Grubeer $v.`n`nSee the commit history for what changed."
+          }
+
+          $body += "`n`n---`n`nBuilt by GitHub Actions from ``$env:GITHUB_SHA``.`n`n``````" +
+                   "`nSHA256  $env:SETUP_SHA256`n``````"
+
+          Set-Content -Path release-body.md -Value $body -Encoding utf8
+
+      - name: Publish release
+        if: steps.version.outputs.isTag == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $v = '${{ steps.version.outputs.version }}'
+          gh release create "v$v" "$env:SETUP_PATH" `
+            --repo "$env:GITHUB_REPOSITORY" `
+            --title "Запрет by Grubeer $v" `
+            --notes-file release-body.md `
+            --latest

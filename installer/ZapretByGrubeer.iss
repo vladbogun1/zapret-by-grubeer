@@ -10,7 +10,11 @@
 
 #define AppDisplayName "Запрет by Grubeer"
 #define AppAsciiName   "Zapret by Grubeer"
-#define AppVersion     "1.0.0"
+
+; CI passes the version from the tag as /DAppVersion=x.y.z; this is only the local fallback.
+#ifndef AppVersion
+  #define AppVersion "1.0.0"
+#endif
 #define AppPublisher   "Grubeer"
 #define AppExeName     "ZapretByGrubeer.exe"
 #define ServiceExeName "ZapretByGrubeer.Service.exe"
