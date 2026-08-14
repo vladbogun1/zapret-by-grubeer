@@ -53,7 +53,9 @@ The tests run entirely offline against the real upstream `.bat` files of engine 
 | Managed hosts section, TCP timestamp handling, target probe | done, hosts covered by tests |
 | Engine controllers (managed process and upstream service mode) | done, needs on-machine verification |
 | Privileged service and named-pipe IPC with per-operation authorization | done, needs on-machine verification |
-| UI (Fluent shell, pages, tray, notifications) | not started |
+| UI shell: FluentWindow, navigation, theming, tray, single instance | done, window verified to launch |
+| UI pages: Home, Strategies, About | done |
+| UI pages: Updates, Settings, Services, Lists, Diagnostics | not started |
 | Manager self-update | not started |
 | Installer and uninstaller | not started |
 
