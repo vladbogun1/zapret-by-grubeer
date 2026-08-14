@@ -1,0 +1,190 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!--
+        The 2.0 visual language. One scale for everything, because a screen with five interactive elements does
+        not need a design system with fifty tokens.
+    -->
+
+    <SolidColorBrush x:Key="Bg" Color="#FF070B14" />
+    <SolidColorBrush x:Key="Card" Color="#FF0E1626" />
+    <SolidColorBrush x:Key="CardHover" Color="#FF15233A" />
+    <SolidColorBrush x:Key="Line" Color="#3348688F" />
+    <SolidColorBrush x:Key="LineStrong" Color="#7A489CD0" />
+    <SolidColorBrush x:Key="Fg" Color="#FFEAF2FB" />
+    <SolidColorBrush x:Key="Fg2" Color="#FF93A4BD" />
+    <SolidColorBrush x:Key="Fg3" Color="#FF64748B" />
+    <SolidColorBrush x:Key="Ok" Color="#FF25D97A" />
+    <SolidColorBrush x:Key="Warn" Color="#FFE9B949" />
+    <SolidColorBrush x:Key="Bad" Color="#FFE85C5C" />
+    <SolidColorBrush x:Key="Accent" Color="#FF2B7FE0" />
+    <SolidColorBrush x:Key="Cyan" Color="#FF29C7E8" />
+
+    <LinearGradientBrush x:Key="Primary" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FF3390F0" Offset="0" />
+        <GradientStop Color="#FF1B5FB8" Offset="1" />
+    </LinearGradientBrush>
+
+    <FontFamily x:Key="Face">Segoe UI Variable Display, Segoe UI</FontFamily>
+    <FontFamily x:Key="FaceText">Segoe UI Variable Text, Segoe UI</FontFamily>
+
+    <!-- Glow is spent on one thing only: the live status dot. -->
+    <DropShadowEffect x:Key="GlowOk" Color="#FF25D97A" BlurRadius="20" ShadowDepth="0" Opacity="0.65" />
+
+    <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource FaceText}" />
+        <Setter Property="Foreground" Value="{StaticResource Fg}" />
+        <Setter Property="FontSize" Value="14.5" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
+    </Style>
+
+    <Style x:Key="Muted" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource FaceText}" />
+        <Setter Property="Foreground" Value="{StaticResource Fg2}" />
+        <Setter Property="FontSize" Value="13.5" />
+    </Style>
+
+    <Style x:Key="H1" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Face}" />
+        <Setter Property="FontSize" Value="34" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource Fg}" />
+    </Style>
+
+    <Style x:Key="CardBorder" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Card}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <!-- One primary action per stage; everything else is visually subordinate. -->
+    <Style x:Key="PrimaryButton" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Fg}" />
+        <Setter Property="Background" Value="{StaticResource Primary}" />
+        <Setter Property="FontFamily" Value="{StaticResource FaceText}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Height" Value="44" />
+        <Setter Property="MinWidth" Value="170" />
+        <Setter Property="Padding" Value="24,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="R" Background="{TemplateBinding Background}" CornerRadius="10"
+                            Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="R" Property="Opacity" Value="0.9" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="R" Property="Opacity" Value="0.75" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="R" Property="Opacity" Value="0.35" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="R" Property="BorderBrush" Value="{StaticResource Cyan}" />
+                            <Setter TargetName="R" Property="BorderThickness" Value="2" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="QuietButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource Fg2}" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Height" Value="38" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="14,0" />
+    </Style>
+
+    <!-- A service tile in onboarding: large, recognisable, one tap. -->
+    <Style x:Key="Tile" TargetType="ToggleButton">
+        <Setter Property="Height" Value="66" />
+        <Setter Property="MinWidth" Value="164" />
+        <Setter Property="Margin" Value="0,0,10,10" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontFamily" Value="{StaticResource FaceText}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="Foreground" Value="{StaticResource Fg}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="R" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}"
+                            BorderThickness="1" CornerRadius="12" Padding="18,0" SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter Grid.Column="0" VerticalAlignment="Center" />
+                            <TextBlock x:Name="Check" Grid.Column="1" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                       Foreground="{StaticResource Ok}" Text="&#xE73E;" VerticalAlignment="Center"
+                                       Visibility="Collapsed" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="R" Property="Background" Value="{StaticResource CardHover}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="R" Property="BorderBrush" Value="{StaticResource Ok}" />
+                            <Setter TargetName="R" Property="Background" Value="#1A25D97A" />
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="R" Property="BorderBrush" Value="{StaticResource Cyan}" />
+                            <Setter TargetName="R" Property="BorderThickness" Value="2" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Caption" TargetType="Button">
+        <Setter Property="Width" Value="46" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource Fg2}" />
+        <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="R" Background="{TemplateBinding Background}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="R" Property="Background" Value="#22FFFFFF" />
+                            <Setter Property="Foreground" Value="{StaticResource Fg}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CloseCaption" TargetType="Button" BasedOn="{StaticResource Caption}">
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#FFC42B1C" />
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary>

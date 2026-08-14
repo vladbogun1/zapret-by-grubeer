@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zapret.App", "Zapret.App\Za
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zapret.Tests", "Zapret.Tests\Zapret.Tests.csproj", "{CFE3C635-A1C1-471A-B5FE-2E1049F66198}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zapret.Shell", "Zapret.Shell\Zapret.Shell.csproj", "{52BB3B2C-1083-4449-868E-D9C2DC2714CE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{CFE3C635-A1C1-471A-B5FE-2E1049F66198}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CFE3C635-A1C1-471A-B5FE-2E1049F66198}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CFE3C635-A1C1-471A-B5FE-2E1049F66198}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52BB3B2C-1083-4449-868E-D9C2DC2714CE}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{52BB3B2C-1083-4449-868E-D9C2DC2714CE}.Debug|Any CPU.Build.0 = Debug|x64
+		{52BB3B2C-1083-4449-868E-D9C2DC2714CE}.Release|Any CPU.ActiveCfg = Release|x64
+		{52BB3B2C-1083-4449-868E-D9C2DC2714CE}.Release|Any CPU.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

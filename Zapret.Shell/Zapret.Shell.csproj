@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The 2.0 interface. A separate project rather than an edit of Zapret.App on purpose: it shares no code with
+    the 1.x UI, and keeping both buildable means the product is never in a half-migrated state.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>ZapretByGrubeer</AssemblyName>
+    <RootNamespace>Zapret.Shell</RootNamespace>
+    <FileDescription>Запрет by Grubeer</FileDescription>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+
+    <!-- WFAC010 tells WinForms apps to move DPI awareness out of the manifest. This is a WPF app: PerMonitorV2
+         must be declared there, before any managed code runs. -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Zapret.Core\Zapret.Core.csproj" />
+  </ItemGroup>
+
+</Project>
